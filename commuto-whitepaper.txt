@@ -1,0 +1,100 @@
+The Commuto Protocol
+Version 0.1
+
+The Commuto Protocol allows users to exchange fiat currencies and stablecoins without the use of a trusted intermediary.
+
+The Commuto protocol is intended to be used with either a graphical, text-based/command line or API interface, to allow easy interaction with the core protocol functionality. These interfaces will make up a peer-to-peer network across which offers will be broadcasted, so each user will have a complete local copy of the Commuto Protocol's decentralized offer book. However, this document focuses only on describing the functionality of the protocol, not of the various interfaces, which will be described in a separate document.
+
+The Commuto Protocol's name comes from the Latin word "commuto", meaning "I exchange" or "I barter."
+
+Motivation:
+At the time of writing in August 2021, many countries are experiencing severe inflation. Honest, hardworking people, who love their country and express their belief in the strength of its economy by holding their national currency, are watching the purchasing power of their life savings melt away as their country's central bank rapidly inflates the supply of national currency. In order to afford food, medicine, clothing, education and other basic necessities of life for themselves and for their families, these people have no choice but to swap their national currency for a stable foreign currency, such as the Euro, Swiss Franc or United States Dollar.
+
+In many parts of the world, this type of swap can be very difficult to complete. Many countries impose unfairly small limits on the amount of national currency that an individual can exchange for foreign currency. Strict sanctions, created by well-meaning world leaders and intended to target cruel rulers of oppressive regimes, often catch innocent civilians in the crossfire, cutting off their access to financial services and further confounding their efforts to attain financial stability. Exorbitantly high fees charged by many exchange platforms take yet another chunk out of users' savings, disproportionately affecting low income earners. And long transaction and exchange times harm those who may need to quickly turn a portion of their foreign-currency-denominated savings back into their national currency, to cover unexpected expenses like medical bills.
+
+In response to these failures of fiat currencies and the traditional banking system, stablecoins, the prices of which are pegged to stable and widely used currencies like the Euro or US Dollar, have been created, and are on the path to widespread adoption. 
+
+What is needed is a fast, affordable and secure tool to facilitate the exchange between fiat currencies and stablecoins. Such a tool didn't exist, until now.
+
+Core Principles:
+The right to freely exchange one's own fairly acquired property is fundamental. In accordance with this basic principle, the Commuto Protocol helps users swap fiat currencies and stablecoins in a fast, affordable, secure, private and censorship-resistant manner.
+
+The Commuto Protocol is fast because it is a decentralized application built with smart contracts. Whereas traditional bank transfers may take hours or days, a transaction of smart-contract-powered tokens on Ethereum or Binance Smart Chain takes mere seconds.
+
+The Commuto Protocol is affordable because stablecoins have low transaction fees. Even high value transactions incur fees that only amount to a few dollars at most, and in some cases, only a few cents.
+
+The Commuto Protocol is secure because it has no trusted intermediary. All funds are handled in a decentralized and transparent fashion by an auditable, open-source smart contract, and no 3rd party can unilaterally seize funds or otherwise interfere with the exchange protocol.
+
+The Commuto Protocol is private because users remain in control of their personal information. Their data is never made public or stored in a central location. This means that there is no database for malicious actors to target in an attempt to identify users or steal their information.
+
+The Commuto Protocol is censorship-resistant because it is private and has no single point of failure. Because it is built on technology like Ethereum and Binance Smart Chain, an entity attempting to censor it must censor the execution of smart contracts on these platforms, which has been proven to be incredibly difficult to do as they have been built from the ground up with censorship-resistance as a core tenet.
+
+The Protocol:
+The Commuto Protocol can be best described as a sequence of simple steps. The Commuto Protocol will support multiple stablecoins (such as DAI, USDC, BUSD, USDT) and many national currencies, so this document will refer to a nonspecific stablecoin with the symbol STBL, and a generic national currency with the symbol FIAT. Sellers have STBL and want FIAT, and buyers have FIAT and want STBL.
+For the purposes of this document, a Commuto Interface Address means the network address of a machine running a Commuto Interface and the port number at which the Commuto Interface is listening for connections to receive messages over Commuto's peer-to-peer network. Initially, network addresses will most likely be Tor onion service addresses. Eventually, network addresses may be Nym Single Use Reply Blocks.
+
+1) The maker will create an offer with a Universally Unique Identifier (UUID) and will specify: 
+The maker's Commuto Interface Address
+An amount (or range of amounts) of STBL to be swapped. 
+A percentage of the swap amount, not less than 10%, that must be used as a security deposit.
+Whether the swap is in the BUY or SELL direction.
+A price of the offer, in the format (amount of FIAT) per (1 STBL)
+A specific payment method, by which the seller will receive FIAT and the buyer will send FIAT, such as M-Pesa, WeChat, Nequi, etc.
+Any information necessary for the buyer to send FIAT payment to the seller, such as a username, phone number, etc.
+A version number describing the version of Commuto Protocol for which the offer is being created.
+The maker will call the Commuto Protocol smart contract function to open a swap, passing the swap's UUID, their address, the amount of STBL to be swapped, the security deposit percentage, and a hash of all the offer data, which will add the offer plus the blockchain account address of the maker to a map of all open offers. This will also lock the maker's security deposit amount plus a 1% fee of STBL in escrow. If the maker is the seller, this will also lock the swap amount of STBL in escrow. Then the maker will broadcast the offer across the peer-to-peer network.
+
+2) The taker will take the swap offer by calling the Commuto Protocol smart contract function to take a swap offer, passing the swap's UUID and the taker's Commuto Interface Address.
+This will also lock the taker's security deposit amount plus a 1% fee of STBL in escrow. If the taker is the seller, this will also lock the amount of STBL to be swapped in escrow.
+
+3) The buyer sends FIAT payment to the seller, using the payment method and user information specified in the offer, and then calls the Commuto Protocol smart contract function, passing the swap's UUID, to indicate that FIAT payment has been sent for the swap specified by the UUID.
+
+4) The seller receives the FIAT payment via the payment method specified in the offer, and then calls the Commuto Protocol smart contract function, passing the swap's UUID, to indicate that FIAT payment has been received for the swap specified by the UUID. 
+
+5) The buyer and seller each close the swap position by calling the Commuto Protocol smart contract function to request swap closure, passing the swap's UUID. When the buyer requests swap closure, they receive their security deposit and the amount of STBL that was swapped, and the 1% service fee is sent to a specific address that holds service fees for later distribution to project maintainers. When the seller requests swap closure, they receive their security deposit, and the 1% service fee is sent to to the address responsible for holding service fees. Once buyer and seller have both requested swap closure, the swap is completely closed.
+
+A maker can cancel an offer by calling the Commuto Protocol smart contract function to cancel a swap offer, passing the swap's UUID. This will ensure the caller of this function is the maker of the swap offer with the specified id. If so, this will remove the offer with the corresponding UUID from the map of all open offers and return to the maker their STBL. The maker will then broadcast a message across the peer-to-peer network indicating that the swap offer has been canceled, causing other users to remove it from their offer books.
+
+Governance and Revenue Distribution:
+The Commuto Protocol has a governance token, referred to henceforth as CMTO, that is also used for revenue distribution. At the end of every week, accumulated service fees are distributed to CMTO holders, according to the percentage of all issued CMTO tokens that they hold. CMTO token holders can also vote on the following issues/proposals:
+The issuance of additional CMTO tokens
+Additional miscellaneous expenses, to be deducted from the week's accumulated service fees before the remaining fees are distributed to token holders
+Addition/removal of dispute agents
+Compensation of dispute agents (dispute agents and their roles in the dispute process are described below)
+Resolution of disputes raised by users and unresolved by dispute agents
+CMTO token holders' votes are weighted by the percentage of all issued CMTO tokens that they own.
+Issuance of new CMTO tokens, miscellaneous expenses and addition/removal of dispute agents must receive approval from the holders of 50% + 1 of all issued tokens. Compensation of dispute agents and resolution of disputes raised by users may only be approved if holders of at least 50% of all issued tokens have voted, and if 50% + 1 of all votes cast are in favor.
+Issues must be approved within one week of being proposed; otherwise they are defeated.
+
+When new proposals are added to maps, an event will be emitted indicating the map to which the proposal was added and the key of the new map entry.
+
+A user can propose issuance of additional CMTO tokens by calling the corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the amount of tokens to be issued, the address to which the tokens should be sent, and a hash of a string describing why additional CMTO tokens should be issued. This will add the new issuance request to a map of all currently open issuance requests. The user will then broadcast this data, along with the description string in its entirety, across the peer-to-peer network. If the issuance request is approved, the user can call the corresponding Commuto Protocol smart contract function, which will issue the amount of CMTO specified in the request to the address specified in the request.
+
+A user can propose an additional miscellaneous expense by calling the corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the amount of STBL to be issued, the address to which the STBL should be sent, and a hash of a string describing why this expense is necessary. This will add a new miscellaneous expense proposal to a map of all currently open miscellaneous expense proposals. The user will then broadcast this data, along with the description string in its entirety, across the peer-to-peer network. If the miscellaneous expense request is approved, the user can call the corresponding Commuto Protocol smart contract function, which will send the amount of STBL specified in the proposal from the pool of accumulated service fees to the address specified in the proposal
+
+A user can request the addition of a new dispute agent to the Commuto Protocol's list of dispute agents by calling the corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the dispute agent candidate's public verification key, the dispute agent candidate's Commuto Interface Address, and a hash of a string describing why the candidate is qualified for the role of dispute agent. This will add a proposal for the addition of a dispute agent to a map of all currently open proposals for the addition of a dispute agent. The user will then broadcast this data, along with the description string in its entirety, across the peer-to-peer network. If the issuance request is approved, the user can call the corresponding Commuto Protocol smart contract function, which will require the newly approved dispute agent to lock 10000 STBL in escrow, and will append the newly approved dispute agent's public verification key and unique address to the Commuto Protocol's list of dispute agents. When a dispute agent wishes to be removed from the Commuto Protocol's list of dispute agents, they can request their removal via a process similar to that of adding a dispute agent, but when such a proposal is approved, the former dispute agent will call the corresponding Commuto Protocol smart contract function which will remove the former dispute agent's information from the Commuto Protocol's list of dispute agents and return the former agent's 10000 STBL deposit.
+
+A dispute agent can request compensation for having successfully resolved disputes by calling the corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the UUID of the disputed swap, the requested amount of STBL for compensation, the dispute agent's signed message describing the dispute resolution, and a hash of a string explaining why the dispute agent deserves compensation for resolving this dispute. This will determine if the dispute was actually resolved by the resolution signed by this dispute agent, and if so, will add a proposal for compensation of a dispute agent to a map of all currently open dispute agent compensation proposals. The user will then broadcast this data, along with the compensation justification string in its entirety, across the peer-to-peer network. CMTO token holders may request more information from the dispute agent, via a chat feature in a Commuto Interface. The default compensation for dispute agents is one third of the combined service fees for the disputed swap.  If the dispute agent compensation request is approved, the dispute agent can call the corresponding Commuto Protocol smart contract function, which will send the amount of STBL specified in the compensation request from the pool of accumulated service fees to the dispute agent.
+
+If dispute agents are unable to resolve a disputed swap within 1 week using the process described below, a user may open dispute resolution to CMTO token holders, who may approve a dispute resolution by voting. This dispute resolution process is described below as well.
+
+Dispute Process:
+In the process described above, both the buyer and seller have opportunities to misbehave and attempt to obtain payment from the other party without sending payment themselves. Additionally, other issues may arise during the swap, such as the buyer becoming unable to send FIAT payment, or the seller becoming unable to receive FIAT. In the event of such issues, users can raise a dispute to request intervention from dispute agents.
+
+Dispute agents are neutral, unbiased 3rd parties who hear arguments from both the buyer and seller concerning what went wrong during the swap, and determine who should receive the STBL still held in escrow. The Commuto Protocol maintains a list of all dispute agents, each agent's Commuto Interface Address, and each agent's public key which can be used to verify signatures of messages sent by each dispute agent.
+
+A user can raise a dispute and request intervention from a refund agent through the following process:
+
+1) A user raises a dispute by calling the Commuto Protocol smart contract function to raise a dispute, passing the swap's UUID. The Commuto Protocol randomly assigns 3 dispute agents from the Commuto Protocol's list of active dispute agents to the swap, and emits an event notifying the dispute agents that a dispute has been raised. Both users send information about the swap and their Commuto Interface Addresses to all three dispute agents over the peer-to-peer network via a Commuto Interface.
+
+2) Through the Commuto Interface, each user enters a private chat room with the three dispute agents and explains the circumstances surrounding the dispute, which may involve problems sending or receiving FIAT payment, an unresponsive peer, or other reason. The dispute agents also enter a private chat room amongst themselves to discuss a resolution. The dispute agents have one week to determine a resolution to the dispute. They determine the amounts of STBL held in escrow that the buyer and seller should receive, and then they each sign an identical copy of a message containing these amounts. Then each dispute agent sends this message and their signed copy of it to each user.
+
+3) Either user can request dispute closure by calling The Commuto Protocol smart contract function to request disputed swap closure, passing the swap's UUID and signed dispute resolution messages from at least 2 out of the 3 assigned dispute agents. When the dispute is closed, STBL is sent to the buyer and seller as specified in the dispute resolution message, and the swap is now completely closed.
+
+If the dispute agents are not able to agree on a resolution within 1 week, a user can call the Commuto Protocol smart contract function to open up dispute resolution to CMTO token holders with the following process:
+
+1) A user opens dispute resolution to CMTO token holders by calling the Commuto Protocol smart contract function to do so, passing the swap's UUID, the user's Commuto Interface Address and a hash of all the offer data. This will send the swap amount as well as both users' security deposits to a specific address that temporarily holds users' funds until CMTO token holders approve a dispute resolution result, add the swap to a map of disputed swaps for which CMTO token holders must approve a resolution, and emit an event to notify CMTO token holders of the dispute.
+
+2) Both the buyer and seller propose a resolution, which is a message describing the amounts of STBL held in escrow that the buyer and seller should receive. They each broadcast these proposed resolution results across the peer-to-peer network, and they each call the Commuto Protocol function to add a hash of their proposed result to the offer data stored in the map of disputed swaps awaiting CMTO token holder resolution.
+
+3) CMTO token holders vote on the resolutions proposed by the buyer and seller. CMTO token holders may vote in favor of the buyers proposed resolution, the sellers proposed resolution, or in favor of a third result that will approve neither of the resolutions, and signal to the buyer and seller that they must re-submit revised resolutions. If a proposed resolution receives the proper number of votes, the winner will call The Commuto Protocol smart contract function to execute the approved resolution, passing the swap's UUID. The STBL held in escrow for the swap for which the resolution has been proposed will be distributed according to the proposed resolution result, and the swap is now completely closed.
