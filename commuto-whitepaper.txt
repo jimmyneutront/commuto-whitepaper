@@ -126,9 +126,11 @@ the seller, this will also lock the amount of STBL to be swapped in escrow. This
 as taken and will add the swap to a map of all swaps. This will then emit an OfferTaken event, specifying the new swap
 id.
 
-3) The buyer sends FIAT payment to the seller, using the payment method and user information specified in the offer, and
-then calls the Commuto Protocol smart contract function, passing the swap's UUID, to indicate that FIAT payment has been
-sent for the swap specified by the UUID.
+3) The buyer sends FIAT payment to the seller, using the payment method and user information specified in the swap, and
+then reports that FIAT payment has been sent by calling the reportPaymentSent function, specifying:
+bytes16 swapID: the id of the swap for which FIAT payment has been sent
+This will ensure that the caller is the swap taker and that payment has not already been sent. Then it will mark the
+swap as having payment sent and will emit a PaymentSent event, specifying the swap id.
 
 4) The seller receives the FIAT payment via the payment method specified in the offer, and then calls the Commuto
 Protocol smart contract function, passing the swap's UUID, to indicate that FIAT payment has been received for the swap
