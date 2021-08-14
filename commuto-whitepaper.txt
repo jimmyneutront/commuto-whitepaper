@@ -135,7 +135,7 @@ swap as having payment sent and will emit a PaymentSent event, specifying the sw
 4) The seller receives the FIAT payment via the payment method specified in the offer, and then calls the
 reportPaymentReceived function, specifying:
 bytes16 swapID: the id of the swap for which FIAT payment has been received
-This will ensure that the caller is the swap maker, that payment has been sent, and that payment has not already been
+This will ensure that the caller is the seller, that payment has been sent, and that payment has not already been
 received. Then it will mark the swap as having payment received and will emit a PaymentReceived event, specifying the
 swap id.
 
