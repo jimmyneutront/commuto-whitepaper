@@ -76,29 +76,55 @@ Eventually, network addresses may be Nym Single Use Reply Blocks.
 bytes16 offerID: a Universally Unique Identifier (UUID) to uniquely identify the offer
 Offer newOffer:
     bool isCreated: used by contract code to check for offer existence, will be set to true by openOffer
-    address maker: the makers address, will be set to msg.sender by openOffer
+    address maker: the maker's address, will be set to msg.sender by openOffer
     bytes interfaceAddress: the maker's Commuto Interface Address
+    StablecoinType stablecoinType: the type of stablecoin to be swapped
     uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
         of amountLowerBound
-    SwapDirection swapDirection: whether the swap is in the BUY or SELL direction
+    SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
     bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
     PaymentMethod paymentMethod: a specific payment method, by which the seller will receive FIAT and the buyer will
         send FIAT, such as M-Pesa, WeChat, Nequi, etc
-    uint256 protocolVersion: A version number describing the version of the Commuto Protocol for which the offer is
+    uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
         is being created
     bytes32 extraData: a keccak256 hash of any extra information necessary for the buyer to send FIAT payment to the
         seller, such as a username, phone number, etc.
-This will add the offer to a map of all open offers. This will also lock the maker's security deposit amount plus a 1%
+This will add the offer to a map of all offers. This will also lock the maker's security deposit amount plus a 1%
 of amountUpperBound fee of STBL in escrow. If the maker is the seller, this will also lock the swap amount of STBL in
 escrow. This will then emit an OfferOpened event, specifying the new offer id. Then the maker will broadcast the offer
 across the peer-to-peer network.
 
-2) The taker will take the swap offer by calling the Commuto Protocol smart contract function to take a swap offer,
-passing the swap's UUID and the taker's Commuto Interface Address. This will also lock the taker's security deposit
-amount plus a 1% fee of STBL in escrow. If the taker is the seller, this will also lock the amount of STBL to be swapped
-in escrow.
+2) The taker will take the swap offer by calling the takeOffer function, specifying:
+bytes16 offerID: the id of the offer to be taken
+Swap newSwap:
+    bool isCreated: used by contract code to check for swap existence, will be set to true by takeOffer
+    address maker: the maker's address
+    bytes makerInterfaceAddress: the maker's Commuto Interface Address
+    address taker: the taker's address
+    bytes takerInterfaceAddress: the taker's Commuto Interface Address
+    StablecoinType stablecoinType: the type of stablecoin to be swapped
+    uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
+    uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
+    uint256 securityDepositAmount: the amount of STBL to be used as a security deposit
+    uint256 takenSwapAmount: the amount of STBL to be swapped; must be >= amountLowerBound and <= amountUpperBound
+    uint256 serviceFeeAmount: used by contract code, equal to 1% of takenSwapAmount
+    SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
+    bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
+    PaymentMethod paymentMethod: a specific payment method, by which the seller will receive FIAT and the buyer will
+        send FIAT, such as M-Pesa, WeChat, Nequi, etc
+    uint256 protocolVersion: a version number describing the version of the Commuto Protocol on which the swap will be
+        executed
+    bytes32 makerExtraData: a keccack256 hash of any extra information about the maker necessary for the buyer to send
+        FIAT payment to the seller
+    bytes32 takerExtraData: a keccack256 hash of any extra information about the taker necessary for the buyer to send
+        FIAT payment to the seller
+This will validate all data to ensure it matches that of the offer being taken. If not, it will revert with a proper
+error message. This will also lock the taker's security deposit amount plus a 1% fee of STBL in escrow. If the taker is
+the seller, this will also lock the amount of STBL to be swapped in escrow. This will then mark the corresponding offer
+as taken and will add the swap to a map of all swaps. This will then emit an OfferTaken event, specifying the new swap
+id.
 
 3) The buyer sends FIAT payment to the seller, using the payment method and user information specified in the offer, and
 then calls the Commuto Protocol smart contract function, passing the swap's UUID, to indicate that FIAT payment has been
