@@ -139,12 +139,19 @@ This will ensure that the caller is the seller, that payment has been sent, and 
 received. Then it will mark the swap as having payment received and will emit a PaymentReceived event, specifying the
 swap id.
 
-5) The buyer and seller each close the swap position by calling the Commuto Protocol smart contract function to request
-swap closure, passing the swap's UUID. When the buyer requests swap closure, they receive their security deposit and the
-amount of STBL that was swapped, and the 1% service fee is sent to a specific address that holds service fees for later
-distribution to project maintainers. When the seller requests swap closure, they receive their security deposit, and the
-1% service fee is sent to the address responsible for holding service fees. Once buyer and seller have both requested
-swap closure, the swap is completely closed.
+5) The buyer and seller then each close the swap position by calling the closeSwap function, specifying:
+bytes16 swapID: the id of the swap to close
+This will ensure tha payment has been received and will send the two 1% service fees to the fee pool. If the caller is
+the buyer and taker, this will ensure the buyer has not already closed the swap, and then will refund the taker's
+security deposit and will send the swap amount to the taker. If the caller is the buyer and maker, this will ensure the
+buyer has not already closed the swap, and then will refund the maker's security deposit, and will send the remainder
+of the max service fee and the swap amount to the maker. If the caller is the seller and taker, this will ensure the
+seller has not already closed the swap, and then will refund the taker's security deposit. If the caller is the seller
+and maker, this will ensure the seller has not already closed the swap, and then will refund the maker's security
+deposit, and will send the remainder of the max service fee and the remainder of the swap amount to the maker. If the
+caller is the buyer, this will then emit a BuyerClosed event, specifying the swap id. If the caller is the seller, this
+will then emit a SellerClosed event, specifying the swap id. Once buyer and seller have both requested swap closure, the
+swap is completely closed.
 
 A maker can cancel an offer by calling the Commuto Protocol smart contract function to cancel a swap offer, passing the
 swap's UUID. This will ensure the caller of this function is the maker of the swap offer with the specified id. If so,
