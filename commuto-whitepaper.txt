@@ -153,11 +153,13 @@ caller is the buyer, this will then emit a BuyerClosed event, specifying the swa
 will then emit a SellerClosed event, specifying the swap id. Once buyer and seller have both requested swap closure, the
 swap is completely closed.
 
-A maker can cancel an offer by calling the Commuto Protocol smart contract function to cancel a swap offer, passing the
-swap's UUID. This will ensure the caller of this function is the maker of the swap offer with the specified id. If so,
-this will remove the offer with the corresponding UUID from the map of all open offers and return to the maker their
-STBL. The maker will then broadcast a message across the peer-to-peer network indicating that the swap offer has been
-canceled, causing other users to remove it from their offer books.
+A maker can cancel an offer by calling the cancelOffer function, specifying:
+bytes16 offerID: the id of the swap to close
+This will ensure the caller of this function is the maker of the swap offer with the specified id and that the offer has
+not been taken. Then this will return to the maker their STBL and will remove the offer with the corresponding id from
+the map of all open offers and will emit a OfferCanceled event, specifying the offer id. The maker will then broadcast a
+message across the peer-to-peer network indicating that the swap offer has been canceled, causing other users to remove
+it from their offer books.
 
 Governance and Revenue Distribution:
 The Commuto Protocol has a governance token, referred to henceforth as CMTO, that is also used for revenue distribution.
