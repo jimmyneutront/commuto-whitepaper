@@ -5,7 +5,7 @@ The Commuto Protocol allows users to exchange fiat currencies and stablecoins wi
 
 The Commuto protocol is intended to be used with either a graphical, text-based/command line or API interface, to allow
 easy interaction with the core protocol functionality. These interfaces will make up a peer-to-peer network across
-which offers will be broadcasted, so each user will have a complete local copy of the Commuto Protocol's decentralized
+which offers will be broadcast, so each user will have a complete local copy of the Commuto Protocol's decentralized
 offer book. However, this document focuses only on describing the functionality of the protocol, not of the various
 interfaces, which will be described in a separate document.
 
