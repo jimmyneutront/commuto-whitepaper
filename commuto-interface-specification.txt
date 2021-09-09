@@ -8,6 +8,7 @@ Henceforth, "the Interface" refers to the Commuto Interface reference implementa
 
 Commuto Interface Network Specification:
 //TODO: Eventually, each Interface should have its own Matrix homeserver built in, to regularly create "throwaway" accounts
+//TODO: Clarify interactions with KMService
 The Interface shall have a CINService instance. The CINService is responsible for receiving and acting on requests from
 other services belonging to the same Interface instance (Local Services) to send messages to other Interfaces, or to
 broadcast messages to every Interface. The CINService is responsible for listening for, discovering, validating and
@@ -51,9 +52,9 @@ expresses a requirement that a message contains a certain field and a value for 
 itself is not considered. Empty, which expresses a requirement that a message contains a certain field and no value for
 that field (the field is empty). Not_Present, which expresses a requirement that a message does not contain a certain
 field. CINService determines that a message matches a MessageExpectation in the following manner: For each message field
-specified in the MessageExpectation object, that field must be present in the message, unless the the MessageExpectation
+specified in the MessageExpectation object, that field must be present in the message, unless the MessageExpectation
 object specifies a Not_Present value for that field, in which case the field must not be present. The value of that
-field must be empty if the MessageExpectation object specifies a Empty value for that field, or must have any value if
+field must be empty if the MessageExpectation object specifies an Empty value for that field, or must have any value if
 the MessageExpectation object specifies a Present value for that field, or otherwise must have a value equal to the
 pattern specified for that value by the MessageExpectation object. If all of these conditions are met, then CINService
 determines that the message matches the MessageExpectation and that the message is expected by the service that created
@@ -83,8 +84,8 @@ obtains the private key associated with the value in the message's recipientInte
 using this private key, and carries on its analysis of the message. If the attempt to obtain the key fails or decryption
 fails, CINService drops the message.
 CINService receives and parses messages in JSON string format. When CINService has determined that a message is expected
-by a Local Service, CINService creates a message object with the JSON string's data and passes passes that message
-object to the proper Local Service.
+by a Local Service, CINService creates a message object with the JSON string's data and passes that message object to
+the proper Local Service.
 A Local Service can cause CINService to actively search for old messages matching one or more MessageExpectations by
 calling CINService's expectOldMessage method. To do this, a Local Service must specify: either a date/time interval or a
 single date/time, and either a single MessageExpectation or a list of MessageExpectations. If a Local Service specifies
@@ -102,5 +103,35 @@ Local Service is properly initialized, and has passed to CINService all necessar
 signal has been received from every Local Service, CINService searches for messages matching all active
 MessageExpectations within all messages sent in the Commuto Interface Network Matrix room since the time described by
 the timestamp of the last-processed message before the Interface's most recent shutdown.
-//TODO: include more details about key obtaining/management and key association with interface ID's
-//TODO: Note that key management service will not accept public key announcements unless the hash of the public key equals the message's senderInterfaceID
+
+Commuto Interface Key Manager Service Specification:
+//TODO: Clarify interaction with data persistence service
+The Interface shall have a KMService instance. The KMService is responsible for generating key pairs and their
+accompanying Interface ID, storing the Interface's own key pairs along with each pair's corresponding Interface ID,
+validating and storing other Interfaces' public keys along with each key's corresponding Interface ID, and serving
+the Interface's own key pairs and other Interface's public keys to other Local Services on demand, given an Interface
+ID. An Interface ID is a hash of an Interface's public key. Interfaces will usually have more than one Interface ID,
+since a new key pair and Interface ID is created for every swap offer. An Interface ID is a hash of an Interface's
+public key. A Local Service can request that KMService generate a new key pair and Interface ID by calling KMService's
+key generation method, and specifying whether KMService should automatically store the newly generated key pair and
+Interface ID. KMService will generate a new key pair and will generate a hash of the new public key in order to derive
+the Interface ID. If the calling Local Service has requested that the new key pair be stored, then KMService
+persistently stores the key pair and Interface ID in the Interface's database of its own key pairs in such a way that
+the key pair can be retrieved given the Interface ID. KMService then returns the key pair and Interface ID to the
+calling Local Service. A Local Service can request that KMService stores an Interface's public key, either by passing a
+public key, or by passing a Public Key Announcement Message object. If a Local Service passes a public key, then
+KMService generates a hash of that public key in order to derive the Interface ID, and then persistently stores the key
+pair and Interface ID in the Interface's database of other Interfaces' public keys in such a way that the public key can
+be retrieved given the Interface ID. If a Local Service passes a Public Key Announcement Message object, then KMService
+generates a hash of the public key included in the message, and then compares the result to the message's
+senderInterfaceID. If the two do not match, KMService throws an exception, indicating that the message is malformed.
+If the two do match, KMService generates a hash of the message's payload in JSON string format, and then uses the public
+key included in the message to verify that the message's signature is a valid signature of the hash of the message's
+payload data. If the signature is valid, then KMService persistently stores the public key and Interface ID in the
+Interface's database of other Interfaces' public keys in such a way that the public key can be retrieved given the
+Interface ID. Otherwise, KMService throws an exception, indicating that signature validation has failed. A Local Service
+can request its Interface's own key pairs from KMService, given an Interface ID. If KMService has a key pair with the
+specified Interface ID, it will return the key pair, otherwise it will throw an exception indicating that the key pair
+was not found. A Local Service can request other Interfaces' public keys from KMService, given an Interface ID. If
+KMService has a public key with the specified Interface ID, it will return the public key, otherwise it will throw an
+exception indicating that the public key was not found.
