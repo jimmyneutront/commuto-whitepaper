@@ -1,0 +1,106 @@
+Commuto Interface Specification
+Version 0.2 [DRAFT]
+
+The Commuto Interface allows easy interaction with the core Commuto Protocol contract functionality. Commuto Interface
+instances use the Matrix network to exchange offer information, chat messages, and other important data with each other,
+composing the Commuto Interface Network. This document describes the official Commuto Interface specification.
+Henceforth, "the Interface" refers to the Commuto Interface reference implementation described by this document.
+
+Commuto Interface Network Specification:
+//TODO: Eventually, each Interface should have its own Matrix homeserver built in, to regularly create "throwaway" accounts
+The Interface shall have a CINService instance. The CINService is responsible for receiving and acting on requests from
+other services belonging to the same Interface instance (Local Services) to send messages to other Interfaces, or to
+broadcast messages to every Interface. The CINService is responsible for listening for, discovering, validating and
+interpreting messages received from other Interfaces, and then passing on the validated and interpreted results to the
+appropriate Local Services.
+//TODO: Maybe version data in message JSON?
+Local Services can request that a message be sent by calling the CINService's sendMessage method. When this sendMessage
+method is called, the caller must pass a message object. The sendMessage method then generates a JSON string
+representation of the message's data. Then the sendMessage method determines if the message is a Broadcast message which
+may be read by all Interfaces, or if the message is a Direct message, which should only be read by a specific interface:
+If the message object's recipientInterfaceID field is empty, CINService determines it is a Broadcast message. If the
+message object's recipientInterfaceID field is not empty, CINService determines it is a Direct message. If the message
+is a Broadcast message, then CINService creates a new JSON string with the following fields: "sender", "payload" and
+"signature". CINService sets the "sender" field to the message object's senderInterfaceID field, and the "payload" field
+to the JSON string representation of the message's data. Then CINService obtains the private key associated with the
+message object's senderInterfaceID field, generates a hash of the JSON string representation of the message's data,
+signs this hash with the obtained private key, and sets the "signature" field to this resulting signature. Then
+CINService sends this message in the Commuto Interface Network Matrix room. If the message is a Direct message, then
+CINService creates a new JSON string with the following fields: "sender", "recipient", "payload" and "signature".
+CINService sets the "sender" field to the message object's senderInterfaceID field, and the recipient field to the
+message object's recipientInterfaceID field. Then CINService obtains the public key associated with the message object's
+recipientInterfaceID field, uses it to encrypt the JSON string representation of the message object's data, and then
+sets the "payload" field to the result. Then CINService obtains the private key associated with the message object's
+senderInterfaceID field, generates a hash of the JSON string representation of the message's data, signs this hash with
+the obtained private key, and sets the "signature" field to this resulting signature. Then CINService sends this message
+in the Commuto Interface Network Matrix room.
+By default, CINService does not listen for messages in the Commuto Interface Network Matrix room. Local Services can
+request that CINService listen for specific messages by calling the CINService's expectMessage method. When this
+expectMessage method is called, the caller must pass a MessageExpectation object. This MessageExpectation object is then
+added to CINService's list of active MessageExpectation objects. A MessageExpectation object describes the attributes of
+messages for which CINService should search, and also specifies which Local Service should receive validated,
+interpreted messages with attributes matching those specified in the MessageExpectation object, when the CINService
+discovers such messages. When one or more MessageExpectations is/are active, CINService compares each new message in the
+Commuto Interface Network Matrix room with each MessageExpectation object in CINService's list of active
+MessageExpectation objects. If a message matches a MessageExpectation, then CINService, after validating the message and
+decrypting it as necessary, passes it to the Local Service specified in the MessageExpectation. If a message does not
+match any MessageExpectations, it is dropped. MessageExpectations specify certain message fields, and for each specified
+message field, a MessageExpectation specifies possible values for that particular message field. These possible values
+are known as patterns. In addition to arbitrary text strings, there are three special pattern values: Present, which
+expresses a requirement that a message contains a certain field and a value for that field, though the actual value
+itself is not considered. Empty, which expresses a requirement that a message contains a certain field and no value for
+that field (the field is empty). Not_Present, which expresses a requirement that a message does not contain a certain
+field. CINService determines that a message matches a MessageExpectation in the following manner: For each message field
+specified in the MessageExpectation object, that field must be present in the message, unless the the MessageExpectation
+object specifies a Not_Present value for that field, in which case the field must not be present. The value of that
+field must be empty if the MessageExpectation object specifies a Empty value for that field, or must have any value if
+the MessageExpectation object specifies a Present value for that field, or otherwise must have a value equal to the
+pattern specified for that value by the MessageExpectation object. If all of these conditions are met, then CINService
+determines that the message matches the MessageExpectation and that the message is expected by the service that created
+the MessageExpectation, and, after validating the message and decrypting it as necessary, passes it to the Local Service
+specified in the Message. Once the Local Service has received the message, the Local Service evaluates it to determine
+if it is a message that the Local Service is expecting. If the Local Service determines that it has received the message
+it expected, it then requests that CINService stops listening for such messages by calling the CINService's
+removeMessageExpectation method. To call this method, the calling Local Service must create and pass to the method a
+MessageExpectation identical to the MessageExpectation the Local Service created earlier, describing the attributes of
+the message that the Local Service was expecting but now has received. Then, CINService searches through its list of
+active MessageExpectations, and removes any that are identical to the MessageExpectation passed to the
+removeMessageExpectation method.
+//TODO: create one big, META ME, such that if a packet matches any current MEs, they match the meta ME, then have the Matrix Homeserver filter the messages it serves using this ME. Though this has to happen at the Matrix Homeserver level, so it will have to be a seperate thing
+By default, CINService attempts to validate every message before carrying out any other processing. Public Key
+Announcement messages are validated slightly differently than all other types of messages. The user may optionally
+configure CINService to skip message validation on Broadcast messages. In order to validate a message that is not a
+Public Key Announcement message, CINService obtains the public key associated with the message's senderInterfaceID,
+generates a hash of the value in the message's "payload" field, and then uses the obtained public key to verify that the
+signature in the message's "signature" field is a valid signature of the hash of the "payload" data. If the signature is
+valid, CINService continues processing the message. Otherwise, CINService drops the message. In order to validate a
+Public Key Announcement message, CINService notes the new public key included in the message's "payload" field,
+generates a hash of the value in the message's "payload" field, and then uses the noted public key to verify that the
+signature in the message's "signature" field is a valid signature of the hash of the "payload" data. If the signature is
+valid, CINService continues processing the Public Key Announcement message. Otherwise, CINService, drops the message.
+Before CINService can analyze the payload of a Direct message, it must first decrypt the payload. To do this, CINService
+obtains the private key associated with the value in the message's recipientInterfaceID field, decrypts the payload
+using this private key, and carries on its analysis of the message. If the attempt to obtain the key fails or decryption
+fails, CINService drops the message.
+CINService receives and parses messages in JSON string format. When CINService has determined that a message is expected
+by a Local Service, CINService creates a message object with the JSON string's data and passes passes that message
+object to the proper Local Service.
+A Local Service can cause CINService to actively search for old messages matching one or more MessageExpectations by
+calling CINService's expectOldMessage method. To do this, a Local Service must specify: either a date/time interval or a
+single date/time, and either a single MessageExpectation or a list of MessageExpectations. If a Local Service specifies
+a date/time interval, then CINService searches for messages matching the passed MessageExpectation(s) within all
+messages sent in the Commuto Interface Network Matrix room within the specified date/time interval. If a Local Service
+specifies only a single date/time, then CINService searches for messages matching the passed MessageExpectation(s)
+within all messages sent in the Commuto Interface Network Matrix room beginning at the specified date/time and up to and
+including the most recent message. If a Local Service passes a single MessageExpectation, then CINService will pass all
+messages matching the MessageExpectation to the Local Service specified in the MessageExpectation. If a Local Service
+passes a list of MessageExpectations, then CINService will compare each message to each MessageExpectation, and will
+pass all messages matching a MessageExpectation to the Local Service specified in the MessageExpectation.
+Upon Interface shutdown, CINService persistently stores the timestamp at which the last message that CINService
+processed was sent. Upon Interface startup, CINService waits for a signal from every Local Service indicating that the
+Local Service is properly initialized, and has passed to CINService all necessary MessageExpectations. When such a
+signal has been received from every Local Service, CINService searches for messages matching all active
+MessageExpectations within all messages sent in the Commuto Interface Network Matrix room since the time described by
+the timestamp of the last-processed message before the Interface's most recent shutdown.
+//TODO: include more details about key obtaining/management and key association with interface ID's
+//TODO: Note that key management service will not accept public key announcements unless the hash of the public key equals the message's senderInterfaceID
