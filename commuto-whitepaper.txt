@@ -7,7 +7,7 @@ The Commuto protocol is intended to be used with either a graphical, text-based/
 easy interaction with the core protocol functionality. These interfaces will make up a peer-to-peer network across
 which offers will be broadcast, so each user will have a complete local copy of the Commuto Protocol's decentralized
 offer book. However, this document focuses only on describing the functionality of the protocol, not of the various
-interfaces, which will be described in a separate document.
+interfaces, which are described in the Commuto Interface Specification.
 
 The Commuto Protocol's name comes from the Latin word "commuto", meaning "I exchange" or "I barter."
 
@@ -67,17 +67,14 @@ The Commuto Protocol can be best described as a sequence of simple steps. The Co
 stablecoins (such as DAI, USDC, BUSD, USDT) and many national currencies, so this document will refer to a nonspecific
 stablecoin with the symbol STBL, and a generic national currency with the symbol FIAT. Sellers have STBL and want FIAT,
 and buyers have FIAT and want STBL.
-For the purposes of this document, a Commuto Interface Address means the network address of a machine running a Commuto
-Interface and the port number at which the Commuto Interface is listening for connections to receive messages over
-Commuto's peer-to-peer network. Initially, network addresses will most likely be Tor onion service addresses.
-Eventually, network addresses may be Nym Single Use Reply Blocks.
-
+A Commuto Interface Id is an array of bytes that refers to a specific Commuto Interface instance, and contains a
+keccak256 hash of a public key belonging to a Commuto Interface instance.
 1) The maker will create an offer by calling the openOffer function, specifying:
 bytes16 offerID: a Universally Unique Identifier (UUID) to uniquely identify the offer
 Offer newOffer:
     bool isCreated: used by contract code to check for offer existence, will be set to true by openOffer
     address maker: the maker's address, will be set to msg.sender by openOffer
-    bytes interfaceAddress: the maker's Commuto Interface Address
+    bytes interfaceId: the maker's Commuto Interface Id
     StablecoinType stablecoinType: the type of stablecoin to be swapped
     uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
@@ -93,17 +90,17 @@ Offer newOffer:
         seller, such as a username, phone number, etc.
 This will add the offer to a map of all offers. This will also lock the maker's security deposit amount plus a 1%
 of amountUpperBound fee of STBL in escrow. If the maker is the seller, this will also lock the swap amount of STBL in
-escrow. This will then emit an OfferOpened event, specifying the new offer id. Then the maker will broadcast the offer
-across the peer-to-peer network.
+escrow. This will then emit an OfferOpened event, specifying the new offer id and the maker's interface Id. Then the
+maker will broadcast the offer across the peer-to-peer network.
 
 2) The taker will take the swap offer by calling the takeOffer function, specifying:
 bytes16 offerID: the id of the offer to be taken
 Swap newSwap:
     bool isCreated: used by contract code to check for swap existence, will be set to true by takeOffer
     address maker: the maker's address
-    bytes makerInterfaceAddress: the maker's Commuto Interface Address
+    bytes makerInterfaceId: the maker's Commuto Interface Id
     address taker: the taker's address
-    bytes takerInterfaceAddress: the taker's Commuto Interface Address
+    bytes takerInterfaceId: the taker's Commuto Interface Id
     StablecoinType stablecoinType: the type of stablecoin to be swapped
     uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
@@ -116,15 +113,15 @@ Swap newSwap:
         send FIAT, such as M-Pesa, WeChat, Nequi, etc
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol on which the swap will be
         executed
-    bytes32 makerExtraData: a keccack256 hash of any extra information about the maker necessary for the buyer to send
+    bytes32 makerExtraData: a keccak256 hash of any extra information about the maker necessary for the buyer to send
         FIAT payment to the seller
-    bytes32 takerExtraData: a keccack256 hash of any extra information about the taker necessary for the buyer to send
+    bytes32 takerExtraData: a keccak256 hash of any extra information about the taker necessary for the buyer to send
         FIAT payment to the seller
 This will validate all data to ensure it matches that of the offer being taken. If not, it will revert with a proper
 error message. This will also lock the taker's security deposit amount plus a 1% fee of STBL in escrow. If the taker is
 the seller, this will also lock the amount of STBL to be swapped in escrow. This will then mark the corresponding offer
 as taken and will add the swap to a map of all swaps. This will then emit an OfferTaken event, specifying the new swap
-id.
+id and the taker's interface Id.
 
 3) The buyer sends FIAT payment to the seller, using the payment method and user information specified in the swap, and
 then reports that FIAT payment has been sent by calling the reportPaymentSent function, specifying:
@@ -141,11 +138,11 @@ swap id.
 
 5) The buyer and seller then each close the swap position by calling the closeSwap function, specifying:
 bytes16 swapID: the id of the swap to close
-This will ensure tha payment has been received and will send the two 1% service fees to the fee pool. If the caller is
+This will ensure that payment has been received and will send the two 1% service fees to the fee pool. If the caller is
 the buyer and taker, this will ensure the buyer has not already closed the swap, and then will refund the taker's
 security deposit and will send the swap amount to the taker. If the caller is the buyer and maker, this will ensure the
-buyer has not already closed the swap, and then will refund the maker's security deposit, and will send the remainder
-of the max service fee and the swap amount to the maker. If the caller is the seller and taker, this will ensure the
+buyer has not already closed the swap, and then will refund the maker's security deposit, and will send the swap amount
+and the remainder of the max service fee to the maker. If the caller is the seller and taker, this will ensure the
 seller has not already closed the swap, and then will refund the taker's security deposit. If the caller is the seller
 and maker, this will ensure the seller has not already closed the swap, and then will refund the maker's security
 deposit, and will send the remainder of the max service fee and the remainder of the swap amount to the maker. If the
@@ -157,8 +154,7 @@ A maker can cancel an offer by calling the cancelOffer function, specifying:
 bytes16 offerID: the id of the swap to close
 This will ensure the caller of this function is the maker of the swap offer with the specified id and that the offer has
 not been taken. Then this will return to the maker their STBL and will remove the offer with the corresponding id from
-the map of all open offers and will emit a OfferCanceled event, specifying the offer id. The maker will then broadcast a
-message across the peer-to-peer network indicating that the swap offer has been canceled, causing other users to remove
+the map of all open offers and will emit a OfferCanceled event, specifying the offer id, causing other users to remove
 it from their offer books.
 
 Governance and Revenue Distribution:
@@ -199,17 +195,17 @@ STBL specified in the proposal from the pool of accumulated service fees to the 
 
 A user can request the addition of a new dispute agent to the Commuto Protocol's list of dispute agents by calling the
 corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the dispute
-agent candidate's public verification key, the dispute agent candidate's Commuto Interface Address, and a hash of a
-string describing why the candidate is qualified for the role of dispute agent. This will add a proposal for the
-addition of a dispute agent to a map of all currently open proposals for the addition of a dispute agent. The user will
-then broadcast this data, along with the description string in its entirety, across the peer-to-peer network. If the
-issuance request is approved, the user can call the corresponding Commuto Protocol smart contract function, which will
-require the newly approved dispute agent to lock 10000 STBL in escrow, and will append the newly approved dispute
-agent's public verification key and unique address to the Commuto Protocol's list of dispute agents. When a dispute
-agent wishes to be removed from the Commuto Protocol's list of dispute agents, they can request their removal via a
-process similar to that of adding a dispute agent, but when such a proposal is approved, the former dispute agent will
-call the corresponding Commuto Protocol smart contract function which will remove the former dispute agent's information
-from the Commuto Protocol's list of dispute agents and return the former agent's 10000 STBL deposit.
+agent candidate's public verification key, the dispute agent candidate's Commuto Interface Id, and a hash of a string
+describing why the candidate is qualified for the role of dispute agent. This will add a proposal for the addition of a
+dispute agent to a map of all currently open proposals for the addition of a dispute agent. The user will then broadcast
+this data, along with the description string in its entirety, across the peer-to-peer network. If the issuance request
+is approved, the user can call the corresponding Commuto Protocol smart contract function, which will require the newly
+approved dispute agent to lock 10000 STBL in escrow, and will append the newly approved dispute agent's public
+verification key and Interface Id to the Commuto Protocol's list of dispute agents. When a dispute agent wishes to be
+removed from the Commuto Protocol's list of dispute agents, they can request their removal via a process similar to that
+of adding a dispute agent, but when such a proposal is approved, the former dispute agent will call the corresponding
+Commuto Protocol smart contract function which will remove the former dispute agent's information from the Commuto
+Protocol's list of dispute agents and return the former agent's 10000 STBL deposit.
 
 A dispute agent can request compensation for having successfully resolved disputes by calling the corresponding Commuto
 Protocol smart contract function and passing a UUID to uniquely identify the proposal, the UUID of the disputed swap,
@@ -252,7 +248,7 @@ circumstances surrounding the dispute, which may involve problems sending or rec
 peer, or other reason. The dispute agents also enter a private chat room amongst themselves to discuss a resolution. The
 dispute agents have one week to determine a resolution to the dispute. They determine the amounts of STBL held in escrow
 that the buyer and seller should receive, and then they each sign an identical copy of a message containing these
-amounts. Then each dispute agent sends this message and their signed copy of it to each user.
+amounts. Then each dispute agent sends this signed message to each user.
 
 3) Either user can request dispute closure by calling The Commuto Protocol smart contract function to request disputed
 swap closure, passing the swap's UUID and signed dispute resolution messages from at least 2 out of the 3 assigned
@@ -274,9 +270,9 @@ network, and they each call the Commuto Protocol function to add a hash of their
 stored in the map of disputed swaps awaiting CMTO token holder resolution.
 
 3) CMTO token holders vote on the resolutions proposed by the buyer and seller. CMTO token holders may vote in favor of
-the buyers proposed resolution, the sellers proposed resolution, or in favor of a third result that will approve neither
-of the resolutions, and signal to the buyer and seller that they must re-submit revised resolutions. If a proposed
-resolution receives the proper number of votes, the winner will call The Commuto Protocol smart contract function to
-execute the approved resolution, passing the swap's UUID. The STBL held in escrow for the swap for which the resolution
-has been proposed will be distributed according to the proposed resolution result, and the swap is now completely
-closed.
+the buyer's proposed resolution, the seller's proposed resolution, or in favor of a third result that will approve
+neither of the resolutions, and signal to the buyer and seller that they must re-submit revised resolutions. If a
+proposed resolution receives the proper number of votes, the winner will call the Commuto Protocol smart contract
+function to execute the approved resolution, passing the swap's UUID. The STBL held in escrow for the swap for which the
+resolution has been proposed will be distributed according to the proposed resolution result, and the swap is now
+completely closed.
