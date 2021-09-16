@@ -138,13 +138,23 @@ exception indicating that the public key was not found.
 
 Commuto Interface Database Service Specification
 //TODO: Properly outline functionality of DBService
+The Interface shall have a DBService instance. The DBService is responsible for persistently storing the Interface's
+data, serving this data to Local Services upon request, and accepting Local Services' requests to add and remove data
+from storage.
 Needs to:
+For CINService:
+Store Matrix Credentials
+For KMService:
 Store own private + public key pairs along with their interface ID
 Serve these upon request
 Add new upon request
 Store other public keys along with their interface ID
 Serve these upon request
 Add new upon request
-Open Offers
-Taken Swaps
-Chat messages associated with taken swaps
+For Open Offer Service (not yet designed):
+Add/Remove Open Offers
+Handle pending taken-by-own-interface offers
+For Swaps Service (not yet designed):
+Add Taken Swaps
+Associate chat messages with taken swaps
+Associate payment method info with taken swaps
