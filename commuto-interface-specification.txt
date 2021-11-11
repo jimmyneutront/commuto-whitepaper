@@ -141,6 +141,22 @@ Commuto Interface Database Service Specification
 The Interface shall have a DBService instance. The DBService is responsible for persistently storing the Interface's
 data, serving this data to Local Services upon request, and accepting Local Services' requests to add and remove data
 from storage.
+The DBService shall have the following functions exclusively for use by KMService:
+storeKeyPair(interfaceId, publicKey, privateKey)
+    Associates publicKey and privateKey with interfaceId and stores them in the Interface's SQL database.
+getKeyPair(interfaceId)
+    Searches the Interface's SQL database for a key pair associated with the supplied value of interfaceId. Throws an
+    error if more than one key pair is found. Returns interfaceId, public key and private key if one key pair is found.
+    Returns nothing if no key pair is found.
+storePublicKey(interfaceId, publicKey)
+    Associates publicKey with interfaceId and stores them in the Interface's SQL database.
+getPublicKey(interfaceId)
+    Searches the Interface's SQL database for a public key associated with the supplied value of interfaceId. Throws an
+    error if more than one public key is found. Returns interfaceId and public key if a public key is found. Returns
+    nothing if no public key is found.
+where interfaceId, publicKey and privateKey are strings.
+
+
 Needs to:
 For CINService:
 Store Matrix Credentials
