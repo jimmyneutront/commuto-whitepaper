@@ -105,39 +105,49 @@ MessageExpectations within all messages sent in the Commuto Interface Network Ma
 the timestamp of the last-processed message before the Interface's most recent shutdown.
 
 Commuto Interface Key Manager Service Specification:
-//TODO: Clarify interaction with data persistence service
 The Interface shall have a KMService instance. The KMService is responsible for generating key pairs and their
 accompanying Interface ID, storing the Interface's own key pairs along with each pair's corresponding Interface ID,
 validating and storing other Interfaces' public keys along with each key's corresponding Interface ID, and serving
 the Interface's own key pairs and other Interface's public keys to other Local Services on demand, given an Interface
-ID. An Interface ID is a hash of an Interface's public key. Interfaces will usually have more than one Interface ID,
-since a new key pair and Interface ID is created for every swap offer. An Interface ID is a hash of an Interface's
-public key. A Local Service can request that KMService generate a new key pair and Interface ID by calling KMService's
-key generation method, and specifying whether KMService should automatically store the newly generated key pair and
-Interface ID. KMService will generate a new key pair and will generate a hash of the new public key in order to derive
-the Interface ID. If the calling Local Service has requested that the new key pair be stored, then KMService
-persistently stores the key pair and Interface ID in the Interface's database of its own key pairs in such a way that
-the key pair can be retrieved given the Interface ID. KMService then returns the key pair and Interface ID to the
-calling Local Service. A Local Service can request that KMService stores an Interface's public key, either by passing a
-public key, or by passing a Public Key Announcement Message object. If a Local Service passes a public key, then
-KMService generates a hash of that public key in order to derive the Interface ID, and then persistently stores the key
-pair and Interface ID in the Interface's database of other Interfaces' public keys in such a way that the public key can
-be retrieved given the Interface ID. If a Local Service passes a Public Key Announcement Message object, then KMService
-generates a hash of the public key included in the message, and then compares the result to the message's
-senderInterfaceID. If the two do not match, KMService throws an exception, indicating that the message is malformed.
-If the two do match, KMService generates a hash of the message's payload in JSON string format, and then uses the public
-key included in the message to verify that the message's signature is a valid signature of the hash of the message's
-payload data. If the signature is valid, then KMService persistently stores the public key and Interface ID in the
-Interface's database of other Interfaces' public keys in such a way that the public key can be retrieved given the
-Interface ID. Otherwise, KMService throws an exception, indicating that signature validation has failed. A Local Service
-can request its Interface's own key pairs from KMService, given an Interface ID. If KMService has a key pair with the
-specified Interface ID, it will return the key pair, otherwise it will throw an exception indicating that the key pair
-was not found. A Local Service can request other Interfaces' public keys from KMService, given an Interface ID. If
-KMService has a public key with the specified Interface ID, it will return the public key, otherwise it will throw an
-exception indicating that the public key was not found.
+ID.
+An Interface ID is a SHA-256 hash of an Interface's RSA public key in PKCS#1 byte encoded format. Interfaces may have
+more than one Interface ID, since a new key pair and Interface ID is created for every swap offer. A Local Service can
+request that KMService generate a new key pair and Interface ID by calling KMService's key generation method:
+generateKeyPair()
+    Generates a new 2048-bit RSA key pair and derives the Interface ID by taking the SHA-256 hash of the
+    new public key in PKCS#1 byte encoded format. Computes the Base64 string encoded PKCS#1 representations of the
+    newly generated public and private keys and the Base64 string representation of the derived Interface ID and
+    persistently stores them using DBService.storeKeyPair. Returns the Interface ID, public key and private key to the
+    caller.
+A Local Service can request its Interface's own key pairs from KMService by calling KMService's method:
+getKeyPair(interfaceId)
+    where interfaceId is the SHA-256 hash of the desired key pair's public key in PKCS#1 byte encoded format. Computes
+    the Base64 string representation of interfaceId and retrieves the key pair in Base64 string encoded PKCS#1 format by
+    passing the resulting representation of interfaceId to DBService.getKeyPair. Recreates public and private key
+    objects using the strings returned by DBService.getKeyPair. Returns interfaceId, public key and private key to the
+    caller.
+A Local Service can request that KMService stores an Interface's public key by calling KMService's method:
+storePublicKey(pubKey)
+    where pubKey is a public key object. Derives the Interface ID by taking the SHA-256 hash of pubKey in PKCS#1 byte
+    encoded format. Computes the Base64 string encoded PKCS#1 representation of pubKey and the Base64 string
+    representation of the derived Interface ID and persistently stores them using DBService.storePublicKey.
+//TODO: Implement this once P2P infrastructure is built
+If a Local Service passes a Public Key Announcement Message object, then KMService generates a hash of the public key
+included in the message, and then compares the result to the message's senderInterfaceID. If the two do not match,
+KMService throws an exception, indicating that the message is malformed. If the two do match, KMService generates a hash
+of the message's payload in JSON string format, and then uses the public key included in the message to verify that the
+message's signature is a valid signature of the hash of the message's payload data. If the signature is valid, then
+KMService persistently stores the public key and Interface ID in the Interface's database of other Interfaces' public
+keys in such a way that the public key can be retrieved given the Interface ID. Otherwise, KMService throws an
+exception, indicating that signature validation has failed.
+A Local Service can request other Interfaces' public keys from KMService by calling KMService's method:
+getPublicKey(interfaceId)
+    where interfaceId is the SHA-256 hash of the desired public key in PKCS#1 byte encoded format. Computes the Base64
+    string representation of interfaceId and retrieves the public key in Base64 string encoded PKCS#1 format by passing
+    the resulting representation of interfaceId to DBService.getPublicKey. Recreates the public key object using the
+    string returned by DBService.getPublicKey. Returns interfaceId and the public key to the caller.
 
 Commuto Interface Database Service Specification
-//TODO: Properly outline functionality of DBService
 The Interface shall have a DBService instance. The DBService is responsible for persistently storing the Interface's
 data, serving this data to Local Services upon request, and accepting Local Services' requests to add and remove data
 from storage.
