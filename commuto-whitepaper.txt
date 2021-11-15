@@ -64,6 +64,7 @@ from the ground up with censorship-resistance as a core tenet.
 
 The Protocol:
 //TODO: replace keccak256 with SHA-256
+//TODO: Update contract with fiat currency denomination as a property of Offer and Swap objects
 The Commuto Protocol can be best described as a sequence of simple steps. The Commuto Protocol will support multiple
 stablecoins (such as DAI, USDC, BUSD, USDT) and many national currencies, so this document will refer to a nonspecific
 stablecoin with the symbol STBL, and a generic national currency with the symbol FIAT. Sellers have STBL and want FIAT,
