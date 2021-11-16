@@ -63,14 +63,13 @@ of smart contracts on these platforms, which has been proven to be incredibly di
 from the ground up with censorship-resistance as a core tenet.
 
 The Protocol:
-//TODO: replace keccak256 with SHA-256
 //TODO: Update contract with fiat currency denomination as a property of Offer and Swap objects
 The Commuto Protocol can be best described as a sequence of simple steps. The Commuto Protocol will support multiple
 stablecoins (such as DAI, USDC, BUSD, USDT) and many national currencies, so this document will refer to a nonspecific
 stablecoin with the symbol STBL, and a generic national currency with the symbol FIAT. Sellers have STBL and want FIAT,
 and buyers have FIAT and want STBL.
 A Commuto Interface Id is an array of bytes that refers to a specific Commuto Interface instance, and contains a
-keccak256 hash of a public key belonging to a Commuto Interface instance.
+SHA-256 hash of a public key belonging to a Commuto Interface instance.
 1) The maker will create an offer by calling the openOffer function, specifying:
 bytes16 offerID: a Universally Unique Identifier (UUID) to uniquely identify the offer
 Offer newOffer:
@@ -88,7 +87,7 @@ Offer newOffer:
         send FIAT, such as M-Pesa, WeChat, Nequi, etc
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
         is being created
-    bytes32 extraData: a keccak256 hash of any extra information necessary for the buyer to send FIAT payment to the
+    bytes32 extraData: a SHA-256 hash of any extra information necessary for the buyer to send FIAT payment to the
         seller, such as a username, phone number, etc.
 This will add the offer to a map of all offers. This will also lock the maker's security deposit amount plus a 1%
 of amountUpperBound fee of STBL in escrow. If the maker is the seller, this will also lock the swap amount of STBL in
@@ -115,9 +114,9 @@ Swap newSwap:
         send FIAT, such as M-Pesa, WeChat, Nequi, etc
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol on which the swap will be
         executed
-    bytes32 makerExtraData: a keccak256 hash of any extra information about the maker necessary for the buyer to send
+    bytes32 makerExtraData: a SHA-256 hash of any extra information about the maker necessary for the buyer to send
         FIAT payment to the seller
-    bytes32 takerExtraData: a keccak256 hash of any extra information about the taker necessary for the buyer to send
+    bytes32 takerExtraData: a SHA-256 hash of any extra information about the taker necessary for the buyer to send
         FIAT payment to the seller
 This will validate all data to ensure it matches that of the offer being taken. If not, it will revert with a proper
 error message. This will also lock the taker's security deposit amount plus a 1% fee of STBL in escrow. If the taker is
