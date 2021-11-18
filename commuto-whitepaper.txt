@@ -63,7 +63,6 @@ of smart contracts on these platforms, which has been proven to be incredibly di
 from the ground up with censorship-resistance as a core tenet.
 
 The Protocol:
-//TODO: Update contract with fiat currency denomination as a property of Offer and Swap objects
 The Commuto Protocol can be best described as a sequence of simple steps. The Commuto Protocol will support multiple
 stablecoins (such as DAI, USDC, BUSD, USDT) and many national currencies, so this document will refer to a nonspecific
 stablecoin with the symbol STBL, and a generic national currency with the symbol FIAT. Sellers have STBL and want FIAT,
@@ -83,6 +82,7 @@ Offer newOffer:
         of amountLowerBound
     SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
     bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
+    bytes fiatCurrency: the symbol of the fiat currency to be used for settlement
     PaymentMethod paymentMethod: a specific payment method, by which the seller will receive FIAT and the buyer will
         send FIAT, such as M-Pesa, WeChat, Nequi, etc
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
@@ -110,6 +110,7 @@ Swap newSwap:
     uint256 serviceFeeAmount: used by contract code, equal to 1% of takenSwapAmount
     SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
     bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
+    bytes fiatCurrency: the symbol of the fiat currency to be used for settlement
     PaymentMethod paymentMethod: a specific payment method, by which the seller will receive FIAT and the buyer will
         send FIAT, such as M-Pesa, WeChat, Nequi, etc
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol on which the swap will be
@@ -165,14 +166,15 @@ issued CMTO tokens that they hold. CMTO token holders can also vote on the follo
 The issuance of additional CMTO tokens
 Additional miscellaneous expenses, to be deducted from the week's accumulated service fees before the remaining fees are
 distributed to token holders
+Adding or removing support for a certain fiat currency to be used for settlement
 Addition/removal of dispute agents
 Compensation of dispute agents (dispute agents and their roles in the dispute process are described below)
 Resolution of disputes raised by users and unresolved by dispute agents
 CMTO token holders' votes are weighted by the percentage of all issued CMTO tokens that they own.
-Issuance of new CMTO tokens, miscellaneous expenses and addition/removal of dispute agents must receive approval from
-the holders of 50% + 1 of all issued tokens. Compensation of dispute agents and resolution of disputes raised by users
-may only be approved if holders of at least 50% of all issued tokens have voted, and if 50% + 1 of all votes cast are in
-favor.
+Issuance of new CMTO tokens, miscellaneous expenses, removal of support for fiat currencies, addition/removal of dispute
+agents must receive approval from the holders of 50% + 1 of all issued tokens. Addition of support for fiat currencies,
+compensation of dispute agents and resolution of disputes raised by users may only be approved if holders of at least
+50% of all issued tokens have voted, and if 50% + 1 of all votes cast are in favor.
 Issues must be approved within one week of being proposed; otherwise they are defeated.
 
 When new proposals are added to maps, an event will be emitted indicating the map to which the proposal was added and
@@ -193,6 +195,15 @@ expense proposal to a map of all currently open miscellaneous expense proposals.
 along with the description string in its entirety, across the peer-to-peer network. If the miscellaneous expense request
 is approved, the user can call the corresponding Commuto Protocol smart contract function, which will send the amount of
 STBL specified in the proposal from the pool of accumulated service fees to the address specified in the proposal
+
+A user can propose the addition or removal of support for a specific fiat currency to be used for settlement by calling
+corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the symbol
+of the currency as its UTF-8 byte representation, an indication of whether support should be added or removed, and a
+hash of a string describing why support for this fiat currency should be added or removed. This will add a new fiat
+currency support proposal to a map of all currently open fiat currency support proposals. The user will then broadcast
+this data, along with the description string in its entirety, across the peer-to-peer network. If the fiat currency
+support proposal is approved, the user can call the corresponding Commuto Protocol smart contract function, which will
+implement the change specified in the proposal in the map of supported fiat currencies in the Commuto Protocol.
 
 A user can request the addition of a new dispute agent to the Commuto Protocol's list of dispute agents by calling the
 corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the dispute
