@@ -19,7 +19,6 @@ signature
 recipient
 
 Interface Interaction with Commuto Protocol:
-//TODO: Update contract with fiat currency denomination as a property of Offer and Swap objects
 //TODO: Include TXID in public key announcement
 The following is a description of how Interfaces will interact with each other and the on-chain Commuto Protocol as
 described in the whitepaper in order to execute swaps. The symbols FIAT and STBL as well as the terms "buyer" and
@@ -27,11 +26,11 @@ described in the whitepaper in order to execute swaps. The symbols FIAT and STBL
 The taker begins listening to the blockchain for the emission of OfferOpened events.
 The maker generates a new 2048-bit RSA key pair and a new UUID. The maker prepares a Solidity Offer object to be passed
 to the Commuto Protocol's newOffer function. The maker sets the Offer object's interfaceId property to the SHA-256 hash
-of the public key in byte format of the newly generated key pair. The maker specifies the price in UTF-8 string format,
-generates an SHA-256 hash of this string, and sets the Offer object's price property equal to the result. The maker
-creates a JSON string containing their payment details with the following structure:
+of the public key in byte format of the newly generated key pair. The maker specifies the price in UTF-8 string format
+and sets the Offer object's price property equal to the result. The maker specifies the symbol of the fiat currency to
+be used for settlement in UTF-8 string format and sets the Offer object's fiatCurrency property equal to the result.
+The maker creates a JSON string containing their payment details with the following structure:
 {
-"fiatCurrency":[the ticker symbol of the fiat to be exchanged],
 "paymentDetails":[details about maker's particular fiat payment account to be used, like a cashtag or bank account
 information],
 "random":[a randomly generated string to conceal payment account information from observers]
@@ -40,10 +39,10 @@ and generates an SHA-256 hash of this string and sets the Offer object's extraDa
 The maker calls the Commuto Protocol's newOffer function, passing the UUID and Solidity Offer object and locking the
 required amount of STBL in escrow. The maker begins listening to the blockchain for the emission of the OfferOpened
 event corresponding to their newly opened offer. The maker creates an offer object with all the information specified
-in their Solidity Offer object as well as the base currency and payment details, sets the offer object's status
-property to "newOfferTxPublished" and stores this object locally.
-When the maker detects the emission of the OfferOpened event corresponding to their newly opened offer, they set the
-offer object's status to "awaitingPKAnnouncement" and create the following JSON string:
+in their Solidity Offer object as well as the payment details and random string, sets the offer object's status property
+to "newOfferTxPublished" and stores this object locally. When the maker detects the emission of the OfferOpened event
+corresponding to their newly opened offer, they set the offer object's status to "awaitingPKAnnouncement" and create the
+following JSON string:
 {
 "sender":[the interface id used in offer creation],
 "msgType":"pka", (pka -> public key announcement)
@@ -55,8 +54,8 @@ offer object's status to "awaitingPKAnnouncement" and create the following JSON 
 private key corresponding to the interface id in the "sender" field]
 }
 and then send this string as a message in the Commuto Interface Network (CIN) Matrix room. When the message is
-successfully sent, the maker updates the offer's status to "offerOpened".
-The maker begins listening to the blockchain for the emission of an OfferTaken event corresponding to their open offer.
+successfully sent, the maker updates the offer's status to "offerOpened". The maker begins listening to the blockchain
+for the emission of an OfferTaken event corresponding to their open offer.
 When the taker detects the emission of the makers OfferOpened event, they begin listening to the CIN Matrix room for a
 message in JSON string format with the "msgType" field equal to "pka", the "sender" field equal to the interfaceId
 specified in the emitted OpenOffer event, and the ["payload"[["offerId"] field equal to the offer id specified in the
@@ -65,15 +64,13 @@ emitted OpenOffer event. If the taker finds such a message, they generate an SHA
 the message and continues to listen for a valid message. If they do match, the taker creates a public key object using
 the value in the ["payload"]["pubKey"] field and attempts to verify the signature with it. If signature verification
 fails, the taker discards the message and continues to listen for a valid message. If signature verification succeeds,
-the taker associates the maker's public key with the maker's interface id and stores them locally.
-The taker calls the Commuto Protocol's getOffer function and passes the offer id specified in the public key
-announcement message, so as to get the terms of the offer.
-The taker decides to take the offer and prepares a Solidity Swap object corresponding to the previously obtained
-Solidity Offer object, generating and storing a new 2048-bit RSA key pair and deriving the key pair's corresponding
-interface id, the SHA-256 hash of the new public key in byte format.
+the taker associates the maker's public key with the maker's interface id and stores them locally. The taker calls the
+Commuto Protocol's getOffer function and passes the offer id specified in the public key announcement message, so as to
+get the terms of the offer. The taker decides to take the offer and prepares a Solidity Swap object corresponding to the
+previously obtained Solidity Offer object, generating and storing a new 2048-bit RSA key pair and deriving the key
+pair's corresponding interface id, the SHA-256 hash of the new public key in byte format.
 The taker prepares a JSON string containing their payment details with the following structure:
 {
-"fiatCurrency":[the ticker symbol of the fiat to be exchanged, must equal that specified by maker],
 "paymentDetails":[details about taker's particular fiat payment account to be used, like a cashtag or bank account
 information],
 "random":[a randomly generated string to conceal payment account information from observers]
@@ -141,7 +138,7 @@ with the private key corresponding to the interface id in the "sender" field]
 The maker then generates an AES-256 key, encrypts the JSON string containing the maker's payment information, which is
 the same string that the maker hashed to obtain the value of the extraData property of the maker's original Solidity
 Offer object, and sets the "payload" field equal to the Base64 string encoded result. The maker retrieves the taker's
-public key from storage, encrypts the AES key using the maker's public key, and sets the "encryptedKey" field to the
+public key from storage, encrypts the AES key using the taker's public key, and sets the "encryptedKey" field to the
 Base64 string encoded result. The maker sends the JSON string as a message in the CIN Matrix room. When the message is
 successfully sent, the maker updates the swap's status to "paymentInfoSent".
 When the taker detects a message in the CIN Matrix room with the "sender" field equal to the maker's interface id and
@@ -157,10 +154,10 @@ message.
 If the two do match, the taker stores the maker's payment information locally and sets the status of their local swap
 object to "receivedMakerInfo".
 The buyer and seller both begin to listen for the emission of a PaymentSent event corresponding to their swap.
-The buyer sends fiat payment to the seller using the previously agreed-upon payment methods and details and calls the
-Commuto Protocol's reportPaymentSent function and passes the UUID of the swap. Once the buyer and seller detect the
-emission of the PaymentSent event corresponding to their swap, they both update the status of their local swap objects
-to "paymentSent".
+The buyer sends fiat payment to the seller using the previously agreed-upon payment methods and details and in the
+agreed  upon fiat currency denomination, and calls the Commuto Protocol's reportPaymentSent function and passes the UUID
+of the swap. Once the buyer and seller detect the emission of the PaymentSent event corresponding to their swap, they
+both update the status of their local swap objects to "paymentSent".
 The buyer and seller both begin to listen for the emission of a PaymentReceived event corresponding to their swap.
 Once the seller receives fiat payment, they call the reportPaymentReceived function, passing the UUID of the swap. Once
 the buyer and seller detect the emission of the PaymentReceived event corresponding to their swap, they both update the
