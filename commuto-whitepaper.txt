@@ -149,8 +149,35 @@ caller is the buyer, this will then emit a BuyerClosed event, specifying the swa
 will then emit a SellerClosed event, specifying the swap id. Once buyer and seller have both requested swap closure, the
 swap is completely closed.
 
-A maker can cancel an offer by calling the cancelOffer function, specifying:
-bytes16 offerID: the id of the swap to close
+A maker can edit the price and supported settlement methods of their offer by calling the editOffer function,
+specifying:
+bytes16 offerID: the id of the swap offer to edit
+Offer editedOffer:
+    bool isCreated: used by contract code to check for offer existence, will be set to true by openOffer
+    address maker: the maker's address, set to msg.sender by openOffer
+    bytes interfaceId: the maker's Commuto Interface Id
+    StablecoinType stablecoinType: the type of stablecoin to be swapped
+    uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
+    uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
+    uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
+        of amountLowerBound
+    SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
+    bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
+    bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
+    uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
+        is being created
+    bytes32 extraData: a SHA-256 hash of any extra information necessary for the buyer to send FIAT payment to the
+        seller, such as a username, phone number, etc.
+bool editPrice: whether to apply the price of editedOffer to the open offer with id offerID
+bool editSettlementMethods: whether to apply the settlement methods of editedOffer to the open offer with id offerID
+This will ensure the caller of the function is the maker of the swap offer with the specified id, that the offer exists,
+and that the offer has not been taken. If editPrice is true, this will set the price of the open offer to that of
+editedOffer. If editSettlementMethods is true, this will remove support for all the supported settlement methods of the
+open offer, and then add support to the offer for all settlement methods specified in editedOffer. This will not
+consider any other properties of editedOffer.
+
+A maker can cancel their offer by calling the cancelOffer function, specifying:
+bytes16 offerID: the id of the swap offer to close
 This will ensure the caller of this function is the maker of the swap offer with the specified id and that the offer has
 not been taken. Then this will return to the maker their STBL, remove the offer with the corresponding id from the map
 of all open offers, remove the records of that offer's accepted settlement methods, and will emit a OfferCanceled event,
