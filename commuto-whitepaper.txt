@@ -88,15 +88,16 @@ Offer newOffer:
     bytes32 extraData: a SHA-256 hash of any extra information necessary for the buyer to send FIAT payment to the
         seller, such as a username, phone number, etc.
 This will add the offer to a map of all offers and the settlement method information to a map of supported settlement
-methods for each offer. This will also lock the maker's security deposit amount plus a 1%
-of amountUpperBound fee of STBL in escrow. If the maker is the seller, this will also lock the swap amount of STBL in
-escrow. This will then emit an OfferOpened event, specifying the new offer id and the maker's interface Id. Then the
-maker will broadcast the offer across the peer-to-peer network.
+methods for each offer. This will also lock the maker's security deposit amount plus a 1% of amountUpperBound fee of
+STBL in escrow. This will then emit an OfferOpened event, specifying the new offer id and the maker's interface Id. Then
+the maker will broadcast the offer across the peer-to-peer network.
 
 2) The taker will take the swap offer by calling the takeOffer function, specifying:
 bytes16 offerID: the id of the offer to be taken
 Swap newSwap:
     bool isCreated: used by contract code to check for swap existence, will be set to true by takeOffer
+    bool requiresFill: used by contract code to determine if maker has deposited STBL, in the case of a maker-as-seller
+        offer
     address maker: the maker's address
     bytes makerInterfaceId: the maker's Commuto Interface Id
     address taker: the taker's address
@@ -122,20 +123,26 @@ the seller, this will also lock the amount of STBL to be swapped in escrow. This
 as taken and will add the swap to a map of all swaps. This will then emit an OfferTaken event, specifying the new swap
 id and the taker's interface Id.
 
-3) The buyer sends FIAT payment to the seller, using the payment method and user information specified in the swap, and
+3) If the maker of the offer is the seller, the maker fills the swap by calling the fillOffer function, specifying:
+bytes16 swapID: the id of the swap to fill
+This will ensure that the caller is the maker and seller and that the swap has not already been filled, and will then
+lock up the amount of STBL to be swapped in escrow. This will then emit an SwapFilled event, specifying the swap id.
+
+4) The buyer sends FIAT payment to the seller, using the payment method and user information specified in the swap, and
 then reports that FIAT payment has been sent by calling the reportPaymentSent function, specifying:
 bytes16 swapID: the id of the swap for which FIAT payment has been sent
-This will ensure that the caller is the buyer and that payment has not already been sent. Then it will mark the
+This will ensure that the caller is the buyer and that payment has not already been sent. If the swap is a
+maker-as-seller swap, this will make sure the swap has been filled. Then it will mark the
 swap as having payment sent and will emit a PaymentSent event, specifying the swap id.
 
-4) The seller receives the FIAT payment via the payment method specified in the offer, and then calls the
+5) The seller receives the FIAT payment via the payment method specified in the offer, and then calls the
 reportPaymentReceived function, specifying:
 bytes16 swapID: the id of the swap for which FIAT payment has been received
 This will ensure that the caller is the seller, that payment has been sent, and that payment has not already been
 received. Then it will mark the swap as having payment received and will emit a PaymentReceived event, specifying the
 swap id.
 
-5) The buyer and seller then each close the swap position by calling the closeSwap function, specifying:
+6) The buyer and seller then each close the swap position by calling the closeSwap function, specifying:
 bytes16 swapID: the id of the swap to close
 This will ensure that payment has been received and will send the two 1% service fees to the fee pool. If the caller is
 the buyer and taker, this will ensure the buyer has not already closed the swap, and then will refund the taker's
@@ -144,10 +151,9 @@ buyer has not already closed the swap, and then will refund the maker's security
 and the remainder of the max service fee to the maker. If the caller is the seller and taker, this will ensure the
 seller has not already closed the swap, and then will refund the taker's security deposit. If the caller is the seller
 and maker, this will ensure the seller has not already closed the swap, and then will refund the maker's security
-deposit, and will send the remainder of the max service fee and the remainder of the swap amount to the maker. If the
-caller is the buyer, this will then emit a BuyerClosed event, specifying the swap id. If the caller is the seller, this
-will then emit a SellerClosed event, specifying the swap id. Once buyer and seller have both requested swap closure, the
-swap is completely closed.
+deposit and will send the remainder of the max service fee to the maker. If the caller is the buyer, this will then emit
+a BuyerClosed event, specifying the swap id. If the caller is the seller, this will then emit a SellerClosed event,
+specifying the swap id. Once buyer and seller have both requested swap closure, the swap is completely closed.
 
 A maker can edit the price and supported settlement methods of their offer by calling the editOffer function,
 specifying:
@@ -180,7 +186,7 @@ A maker can cancel their offer by calling the cancelOffer function, specifying:
 bytes16 offerID: the id of the swap offer to close
 This will ensure the caller of this function is the maker of the swap offer with the specified id and that the offer has
 not been taken. Then this will return to the maker their STBL, remove the offer with the corresponding id from the map
-of all open offers, remove the records of that offer's accepted settlement methods, and will emit a OfferCanceled event,
+of all open offers, remove the records of that offer's accepted settlement methods, and will emit a OfferCanceled event
 specifying the offer id, prompting other users to remove it from their offer books.
 
 #TODO: Fee percentage set by token holders
