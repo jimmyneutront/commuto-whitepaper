@@ -75,7 +75,7 @@ Offer newOffer:
     bool isCreated: used by contract code to check for offer existence, will be set to true by openOffer
     address maker: the maker's address, will be set to msg.sender by openOffer
     bytes interfaceId: the maker's Commuto Interface Id
-    StablecoinType stablecoinType: the type of stablecoin to be swapped
+    address stablecoin: the contract address of the stablecoin to be swapped
     uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
@@ -102,7 +102,7 @@ Swap newSwap:
     bytes makerInterfaceId: the maker's Commuto Interface Id
     address taker: the taker's address
     bytes takerInterfaceId: the taker's Commuto Interface Id
-    StablecoinType stablecoinType: the type of stablecoin to be swapped
+    address stablecoin: the contract address of the stablecoin to be swapped
     uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit
@@ -123,7 +123,7 @@ the seller, this will also lock the amount of STBL to be swapped in escrow. This
 as taken and will add the swap to a map of all swaps. This will then emit an OfferTaken event, specifying the new swap
 id and the taker's interface Id.
 
-3) If the maker of the offer is the seller, the maker fills the swap by calling the fillOffer function, specifying:
+3) If the maker of the offer is the seller, the maker fills the swap by calling the fillSwap function, specifying:
 bytes16 swapID: the id of the swap to fill
 This will ensure that the caller is the maker and seller and that the swap has not already been filled, and will then
 lock up the amount of STBL to be swapped in escrow. This will then emit an SwapFilled event, specifying the swap id.
@@ -162,7 +162,7 @@ Offer editedOffer:
     bool isCreated: used by contract code to check for offer existence, will be set to true by openOffer
     address maker: the maker's address, set to msg.sender by openOffer
     bytes interfaceId: the maker's Commuto Interface Id
-    StablecoinType stablecoinType: the type of stablecoin to be swapped
+    address stablecoin: the contract address of the stablecoin to be swapped
     uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
@@ -189,7 +189,7 @@ not been taken. Then this will return to the maker their STBL, remove the offer 
 of all open offers, remove the records of that offer's accepted settlement methods, and will emit a OfferCanceled event
 specifying the offer id, prompting other users to remove it from their offer books.
 
-#TODO: Fee percentage set by token holders
+TODO: Fee percentage set by token holders
 Governance and Revenue Distribution:
 The Commuto Protocol has a governance token, referred to henceforth as CMTO, that is also used for revenue distribution.
 At the end of every week, accumulated service fees are distributed to CMTO holders, according to the percentage of all
@@ -197,16 +197,18 @@ issued CMTO tokens that they hold. CMTO token holders can also vote on the follo
 The issuance of additional CMTO tokens
 Additional miscellaneous expenses, to be deducted from the week's accumulated service fees before the remaining fees are
 distributed to token holders
-Adding or removing support for specific settlement methods
-Addition/removal of dispute agents
+Addition or removal of support for specific settlement methods
+Addition or removal of support for specific stablecoins
+Addition or removal of dispute agents
 Compensation of dispute agents (dispute agents and their roles in the dispute process are described below)
 Resolution of disputes raised by users and unresolved by dispute agents
 CMTO token holders' votes are weighted by the percentage of all issued CMTO tokens that they own.
-Issuance of new CMTO tokens, miscellaneous expenses, removal of support for settlement methods, addition/removal of
-dispute agents must receive approval from the holders of 50% + 1 of all issued tokens. Addition of support for fiat
-currencies, compensation of dispute agents and resolution of disputes raised by users may only be approved if holders of
-at least 50% of all issued tokens have voted, and if 50% + 1 of all votes cast are in favor.
-Issues must be approved within one week of being proposed; otherwise they are defeated.
+Issuance of new CMTO tokens, miscellaneous expenses, removal of support for a specific settlement method, addition or
+removal of support for a specific stablecoin, and addition/removal of dispute agents must receive approval from the
+holders of 50% + 1 of all issued tokens. Addition of support for a specific settlement method, compensation of dispute
+agents and resolution of disputes raised by users may only be approved if holders of at least 50% of all issued tokens
+have voted, and if 50% + 1 of all votes cast are in favor. Issues must be approved within one week of being proposed;
+otherwise they are defeated.
 
 When new proposals are added to maps, an event will be emitted indicating the map to which the proposal was added and
 the key of the new map entry.
@@ -238,6 +240,15 @@ a map of all currently open settlement method support proposals. The user will t
 description string in its entirety, across the peer-to-peer network. If the settlement method support proposal is
 approved, the user can call the corresponding Commuto Protocol smart contract function, which will implement the change
 specified in the proposal in the map and array of supported settlement methods in the Commuto Protocol.
+
+A user can propose the addition or removal of support for a specific stablecoin by calling the corresponding Commuto
+Protocol smart contract function and passing a UUID to uniquely identify the proposal, the address of the contract of
+the stablecoin in question, an indication of whether support should be added or removed, and a hash of a string
+describing why support for this fiat currency should be added or removed. This will add a new stablecoin support
+proposal to a map of all currently open stablecoin support proposals. The user will then broadcast this data, along with
+the description string in its entirety, across the peer-to-peer network. If the settlement method support proposal is
+approved, the user can call the corresponding Commuto Protocol smart contract function, which will implement the change
+specified in the proposal in the map and array of supported stablecoins in the Commuto Protocol.
 
 A user can request the addition of a new dispute agent to the Commuto Protocol's list of dispute agents by calling the
 corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the dispute
