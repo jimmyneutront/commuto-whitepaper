@@ -20,6 +20,7 @@ recipient
 
 Interface Interaction with Commuto Protocol:
 //TODO: Include TXID in public key announcement
+//TODO: Include initialization vector along with symmetric key
 The following is a description of how Interfaces will interact with each other and the on-chain Commuto Protocol as
 described in the whitepaper in order to execute swaps. The symbols FIAT and STBL as well as the terms "buyer" and
 "seller" have the same meaning in this description as they do in the Commuto Protocol whitepaper.
