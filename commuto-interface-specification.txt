@@ -20,6 +20,7 @@ recipient
 
 Interface Interaction with Commuto Protocol:
 //TODO: Include TXID in public key announcement
+//TODO: Don't require on-chain witness of payment account details
 The following is a description of how Interfaces will interact with each other and with the on-chain Commuto Protocol as
 described in the whitepaper in order to execute swaps. The symbols FIAT and STBL as well as the terms "buyer" and
 "seller" have the same meaning in this description as they do in the Commuto Protocol whitepaper.
@@ -27,12 +28,12 @@ The taker begins listening to the blockchain for the emission of OfferOpened eve
 The maker generates a new 2048-bit RSA key pair and a new UUID. The maker prepares an EVM compatible Offer object to be
 passed to the Commuto Protocol's newOffer function. The maker sets the Offer object's interfaceId property to the
 SHA-256 hash of the public key in byte format of the newly generated key pair. The maker specifies the offer's price in
-UTF-8 string format and sets the Offer object's price property equal to the result. The maker specifies the settlement
-method to be used in UTF-8 byte format and sets the Offer object's settlementMethod property equal to the result.
+UTF-8 bytes format and sets the Offer object's price property equal to the result. The maker specifies the settlement
+methods to be used in UTF-8 bytes and sets the Offer object's settlementMethods property to an array of the results.
 The maker creates a JSON string containing their payment details with the following structure:
 {
-"paymentDetails":[details about maker's particular fiat payment account to be used, like a cashtag or bank account
-information],
+"paymentDetails":[details about maker's particular fiat payment accounts to be used, like a cashtag or bank account
+information. The maker supplies one set of payment details for each supported payment method.],
 "random":[a randomly generated string to conceal payment account information from observers]
 }
 and generates an SHA-256 hash of this string and sets the Offer object's extraData property equal to the result.
@@ -111,7 +112,7 @@ The taker begins listening to the CIN Matrix room for a message in JSON string f
 the maker's interface id and the "recipient" field equal to the taker's interface id.
 When the maker detects the OfferTaken event corresponding to their offer, they transform their local offer object to a
 swap object and set its status to "awaitingTakerInfo" and begin listening to the CIN Matrix room for a message with the
-"sender" field equal to the taker's interface id as specified in the emitted OfferTaken event, the "recipient" field
+"sender" field equal to the taker's interface id as specified in the emitted OfferTaken event, and the "recipient" field
 equal to the maker's interface id. If the maker finds such a message, they retrieve the private key associated with the
 interface id in the "recipient" field and use it to decrypt the value in the "encryptedKey" and "encryptedIV" fields and
 restore them into a key object. The maker uses the new key object to decrypt the value in the "payload" field. The maker
@@ -164,8 +165,8 @@ of the swap and locking the swap amount of STBL in escrow. Once the maker and ta
 SwapFilled event corresponding to their maker-as-seller swap, they both update the status of their local swap objects to
 "makerAsSellerDepositLocked".
 The buyer and seller both begin to listen for the emission of a PaymentSent event corresponding to their swap.
-The buyer sends fiat payment to the seller using the previously agreed-upon payment methods and details and in the
-agreed upon fiat currency denomination, and calls the Commuto Protocol's reportPaymentSent function and passes the UUID
+The buyer sends fiat payment to the seller using the previously agreed-upon payment method and details and in the
+agreed-upon fiat currency denomination, and calls the Commuto Protocol's reportPaymentSent function and passes the UUID
 of the swap. Once the buyer and seller detect the emission of the PaymentSent event corresponding to their swap, they
 both update the status of their local swap objects to "paymentSent".
 The buyer and seller both begin to listen for the emission of a PaymentReceived event corresponding to their swap.
