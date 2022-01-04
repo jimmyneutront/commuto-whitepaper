@@ -19,11 +19,15 @@ signature
 recipient
 
 Interface Interaction with Commuto Protocol:
-//TODO: Include TXID in public key announcement
+//TODO: Update spec to reflect storage of local offer/swap before waiting for OpenOffer/TakeOffer event emission
 //TODO: Don't require on-chain witness of payment account details
+//TODO: Clarify storage and retrieval of payment method details in local database
+//TODO: Deal with tx reverts
+//TODO: Include TXID in public key announcement
 The following is a description of how Interfaces will interact with each other and with the on-chain Commuto Protocol as
 described in the whitepaper in order to execute swaps. The symbols FIAT and STBL as well as the terms "buyer" and
 "seller" have the same meaning in this description as they do in the Commuto Protocol whitepaper.
+Phase 1:
 The taker begins listening to the blockchain for the emission of OfferOpened events.
 The maker generates a new 2048-bit RSA key pair and a new UUID. The maker prepares an EVM compatible Offer object to be
 passed to the Commuto Protocol's newOffer function. The maker sets the Offer object's interfaceId property to the
@@ -84,7 +88,7 @@ escrow. The taker begins listening to the blockchain for the emission of the Off
 taken swap. The taker creates a swap object with all the information specified in their EVM compatible Swap object as
 well as the base currency and payment details, sets the swap object's status property to "takeOfferTxPublished" and
 stores this object locally. When the taker detects the emission of the OfferTaken event corresponding to the new swap,
-they set the swap object's status to "awaitingPKAnnouncement" and create the following two JSON strings:
+they set the swap object's status to "awaitingTakerInfoAnnouncement" and create the following two JSON strings:
 {
 "msgType":"takerInfo"
 "pubKey":[the public key from which the interface id in the "sender" field was derived in string format]
@@ -164,6 +168,7 @@ event corresponding to their swap. Then the maker-as-seller calls Commuto Protoc
 of the swap and locking the swap amount of STBL in escrow. Once the maker and taker detect the emission of the
 SwapFilled event corresponding to their maker-as-seller swap, they both update the status of their local swap objects to
 "makerAsSellerDepositLocked".
+Phase 2:
 The buyer and seller both begin to listen for the emission of a PaymentSent event corresponding to their swap.
 The buyer sends fiat payment to the seller using the previously agreed-upon payment method and details and in the
 agreed-upon fiat currency denomination, and calls the Commuto Protocol's reportPaymentSent function and passes the UUID
