@@ -85,8 +85,6 @@ Offer newOffer:
     bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
         is being created
-    bytes32 extraData: a SHA-256 hash of any extra information necessary for the buyer to send FIAT payment to the
-        seller, such as a username, phone number, etc.
 This will add the offer to a map of all offers and the settlement method information to a map of supported settlement
 methods for each offer. This will also lock the maker's security deposit amount plus a 1% of amountUpperBound fee of
 STBL in escrow. This will then emit an OfferOpened event, specifying the new offer id and the maker's interface Id. Then
@@ -113,10 +111,6 @@ Swap newSwap:
     bytes settlementMethod: the name of the settlement method to be used for settlement in UTF-8 byte format
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol on which the swap will be
         executed
-    bytes32 makerExtraData: a SHA-256 hash of any extra information about the maker necessary for the buyer to send
-        FIAT payment to the seller
-    bytes32 takerExtraData: a SHA-256 hash of any extra information about the taker necessary for the buyer to send
-        FIAT payment to the seller
 This will validate all data to ensure it matches that of the offer being taken. If not, it will revert with a proper
 error message. This will also lock the taker's security deposit amount plus a 1% fee of STBL in escrow. If the taker is
 the seller, this will also lock the amount of STBL to be swapped in escrow. This will then mark the corresponding offer
@@ -172,15 +166,13 @@ Offer editedOffer:
     bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
         is being created
-    bytes32 extraData: a SHA-256 hash of any extra information necessary for the buyer to send FIAT payment to the
-        seller, such as a username, phone number, etc.
 bool editPrice: whether to apply the price of editedOffer to the open offer with id offerID
 bool editSettlementMethods: whether to apply the settlement methods of editedOffer to the open offer with id offerID
 This will ensure the caller of the function is the maker of the swap offer with the specified id, that the offer exists,
 and that the offer has not been taken. If editPrice is true, this will set the price of the open offer to that of
 editedOffer. If editSettlementMethods is true, this will remove support for all the supported settlement methods of the
 open offer, and then add support to the offer for all settlement methods specified in editedOffer. This will not
-consider any other properties of editedOffer.
+change any other properties of the offer.
 
 A maker can cancel their offer by calling the cancelOffer function, specifying:
 bytes16 offerID: the id of the swap offer to close

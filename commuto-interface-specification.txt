@@ -9,7 +9,7 @@ Henceforth, "the Interface" refers to the Commuto Interface reference implementa
 The term "key object" refers to a platform-specific object representing a cryptographic key, such as SecKey on iOS or
 java.security.PublicKey on Android or JVM. An asymmetric key said to be in "byte format" is a byte array containing
 the key encoded as bytes according to the PKCS#1 standard. A symmetric key said to be in "byte format" is a byte array
-containing the key encoded as bytes. A key said to be in "string" format is the Base64 string representation of a key in
+containing the key encoded as bytes. A key said to be in "string format" is the Base64 string representation of a key in
 byte format.
 
 message JSON fields:
@@ -20,33 +20,31 @@ recipient
 
 Interface Interaction with Commuto Protocol:
 //TODO: Update spec to reflect storage of local offer/swap before waiting for OpenOffer/TakeOffer event emission
-//TODO: Don't require on-chain witness of payment account details
 //TODO: Clarify storage and retrieval of payment method details in local database
 //TODO: Deal with tx reverts
 //TODO: Include TXID in public key announcement
 The following is a description of how Interfaces will interact with each other and with the on-chain Commuto Protocol as
 described in the whitepaper in order to execute swaps. The symbols FIAT and STBL as well as the terms "buyer" and
 "seller" have the same meaning in this description as they do in the Commuto Protocol whitepaper.
+The following is depicted in the Business Process Model Notation diagrams found in this repo.
 Phase 1:
 The taker begins listening to the blockchain for the emission of OfferOpened events.
 The maker generates a new 2048-bit RSA key pair and a new UUID. The maker prepares an EVM compatible Offer object to be
 passed to the Commuto Protocol's newOffer function. The maker sets the Offer object's interfaceId property to the
 SHA-256 hash of the public key in byte format of the newly generated key pair. The maker specifies the offer's price in
-UTF-8 bytes format and sets the Offer object's price property equal to the result. The maker specifies the settlement
+UTF-8 byte format and sets the Offer object's price property equal to the result. The maker specifies the settlement
 methods to be used in UTF-8 bytes and sets the Offer object's settlementMethods property to an array of the results.
 The maker creates a JSON string containing their payment details with the following structure:
 {
 "paymentDetails":[details about maker's particular fiat payment accounts to be used, like a cashtag or bank account
-information. The maker supplies one set of payment details for each supported payment method.],
-"random":[a randomly generated string to conceal payment account information from observers]
+information. The maker supplies one set of payment details for each supported payment method.]
 }
-and generates an SHA-256 hash of this string and sets the Offer object's extraData property equal to the result.
 The maker calls the Commuto Protocol's newOffer function, passing the UUID and EVM compatible Offer object and locking
 the security deposit and maximum service fee in escrow. The maker begins listening to the blockchain for the emission of
 the OfferOpened event corresponding to their newly opened offer. The maker creates a local offer object with all the
-information specified in their EVM compatible Offer object as well as the payment details and random string, sets the
-offer object's status property to "newOfferTxPublished" and stores this object locally. When the maker detects the
-emission of the OfferOpened event corresponding to their newly opened offer, they set the offer object's status to
+information specified in their EVM compatible Offer object as well as the payment details string, sets the offer
+object's status property to "newOfferTxPublished" and stores this object locally. When the maker detects the emission of
+the OfferOpened event corresponding to their newly opened offer, they set the offer object's status to
 "awaitingPKAnnouncement" and create the following JSON string:
 {
 "sender":[the interface id used in offer creation],
@@ -77,24 +75,21 @@ pair's corresponding interface id, the SHA-256 hash of the new public key in byt
 The taker prepares a JSON string containing their payment details with the following structure:
 {
 "paymentDetails":[details about taker's particular fiat payment account to be used, like a cashtag or bank account
-information],
-"random":[a randomly generated string to conceal payment account information from observers]
+information]
 }
-and generates an SHA-256 hash of this string and sets the Swap object's takerExtraData property equal to the result.
 The taker calls the Commuto Protocol's takeOffer function, passing the UUID of the offer to be taken and the EVM
-compatible Swap object and locking the required amount of STBL in escrow: if the taker is the buyer, this locks the
+compatible Swap object and locking the required amount of STBL in escrow; if the taker is the buyer, this locks the
 taker's security deposit and service fee in escrow; if the taker is the seller, this also locks the swap amount in
 escrow. The taker begins listening to the blockchain for the emission of the OfferTaken event corresponding to the newly
 taken swap. The taker creates a swap object with all the information specified in their EVM compatible Swap object as
-well as the base currency and payment details, sets the swap object's status property to "takeOfferTxPublished" and
-stores this object locally. When the taker detects the emission of the OfferTaken event corresponding to the new swap,
-they set the swap object's status to "awaitingTakerInfoAnnouncement" and create the following two JSON strings:
+well as the payment details string, sets the swap object's status property to "takeOfferTxPublished" and stores this
+object locally. When the taker detects the emission of the OfferTaken event corresponding to the new swap, they set the
+swap object's status to "awaitingTakerInfoAnnouncement" and create the following two JSON strings:
 {
 "msgType":"takerInfo"
 "pubKey":[the public key from which the interface id in the "sender" field was derived in string format]
 "swapId":[the UUID of the newly taken swap in UTF-8 string format]
-"takerExtraData":[the string from which the maker derived the hash supplied as takerExtraData when taking the offer,
-including the taker's payment details and random string]
+"paymentDetails":[the taker's payment details, as specified above]
 }
 and
 {
@@ -124,31 +119,26 @@ confirms that the value in the payload's "msgType" field equals "takerInfo" and 
 the UUID of the swap specified in the OfferTaken event. Then the maker creates a public key object using the string in
 the payload's "pubKey" field, generates a hash of the encrypted payload, and verifies the signature in the "signature"
 field. If signature verification fails, the maker discards the message and continues listening for a valid message. If
-signature verification succeeds, the maker generates an SHA-256 hash of the value in the payload's "takerExtraData"
-field. Then the maker calls the Commuto Protocol's getSwap function, passing the UUID of the new swap. The maker
-compares the value in the returned Solidity Swap object's takerExtraData field with the previously calculated hash of
-the payload's "takerExtraData" field. If the two do not match, the maker discards the message and continues listening
-for a valid message.
-//TODO: At this ^ point, a dispute should be raised, since the taker is trying to supply bogus payment info.
-If the two do match, the maker associates the taker's public key with the taker's interface id and stores them locally,
-and stores the taker's payment information locally as well. The maker sets the status of their local swap object to
-"receivedTakerInfo". Then the maker prepares the following JSON string:
+signature verification succeeds, the maker associates the taker's public key with the taker's interface id and stores
+them locally, and stores the taker's payment information locally as well. Then the maker calls the Commuto Protocol's
+getSwap function, passing the UUID of the new swap. The maker then determines which settlement method the taker has
+chosen. The maker sets the status of their local swap object to "receivedTakerInfo". Then the maker prepares the
+following JSON string:
 {
 "sender":[the maker's interface id],
 "recipient":[the taker's interface id],
 "encryptedKey":[key used to encrypt payload, encrypted with taker's public key]
 "encryptedIV":[initialization vector used to encrypt payload, encrypted with the taker's public key]
-"payload":[the JSON string containing payment information (the hashed value of which the maker set equal to their
-original Solidity Offer object's extraData property) encrypted with the AES key and initialization vector that are
-encrypted and stored in the "encryptedKey" and "encryptedIV" fields, respectively]
+"payload":[the JSON string containing the maker's payment information for the payment method that the taker has chosen,
+encrypted with the AES key and initialization vector that are encrypted and stored in the "encryptedKey" and
+"encryptedIV" fields, respectively]
 "signature":[a Base64 string encoded signature of the SHA-256 hash of the encrypted value in the payload field, signed
 with the private key corresponding to the interface id in the "sender" field]
 }
 The maker then generates an AES-256 key and initialization vector and uses them to encrypt the JSON string containing
-the maker's payment information (which is the same string that the maker hashed to obtain the value of the extraData
-property of the maker's original EVM compatible Offer object) and sets the "payload" field equal to the Base64 string
-encoded result. The maker retrieves the taker's public key from storage, encrypts the AES key and initialization vector
-using the taker's public key, and sets the "encryptedKey" and "encryptedIV" fields to the Base64 string encoded results.
+the maker's payment information and sets the "payload" field equal to the Base64 string encoded result. The maker
+retrieves the taker's public key from storage, encrypts the AES key and initialization vector using the taker's public
+key, and sets the "encryptedKey" and "encryptedIV" fields to the Base64 string encoded results.
 The maker sends the JSON string as a message in the CIN Matrix room. When the message is successfully sent, the maker
 updates the swap's status to "paymentInfoSent".
 When the taker detects a message in the CIN Matrix room with the "sender" field equal to the maker's interface id and
@@ -157,12 +147,8 @@ of the value in the "payload" field, and verifies the signature in the "signatur
 fails, the taker discards the message and continues to search for a valid message. If signature verification succeeds,
 the taker retrieves the private key associated with the interface id in the "recipient" field, decrypts the values in
 the "encryptedKey" and "encryptedIV" fields, restores the AES key and initialization vector with the decrypted results,
-and decrypts the "payload" field. The taker generates an SHA-256 hash of the decrypted "payload" field and compares it
-to the value of the makerExtraData property of the EVM compatible swap object. If the two do not match, the maker
-discards the message and continues listening for a valid message.
-//TODO: At this ^ point, a dispute should be raised, since the maker is trying to supply bogus payment info.
-If the two do match, the taker stores the maker's payment information locally and sets the status of their local swap
-object to "receivedMakerInfo".
+and decrypts the "payload" field. Then the taker stores the maker's payment information locally and sets the status of
+their local swap object to "receivedMakerInfo".
 If the swap is a maker-as-seller swap, both the maker and the taker begin to listen for the emission of a SwapFilled
 event corresponding to their swap. Then the maker-as-seller calls Commuto Protocol's fillSwap function, passing the UUID
 of the swap and locking the swap amount of STBL in escrow. Once the maker and taker detect the emission of the

@@ -153,22 +153,369 @@
         <bpmn:targetRef>DataStoreReference_0p4paci</bpmn:targetRef>
       </bpmn:dataOutputAssociation>
     </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_0dkjdjo" sourceRef="Activity_00ekflw" targetRef="Activity_04rmnl5" />
+    <bpmn:task id="Activity_04rmnl5" name="Emit SwapFilled event">
+      <bpmn:incoming>Flow_0dkjdjo</bpmn:incoming>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="DataStoreReference_0z8lhwg" name="Commuto Swap Contract Storage" />
     <bpmn:task id="Activity_00ekflw" name="Lock taken swap amount in escrow and mark swap as filled">
       <bpmn:outgoing>Flow_0dkjdjo</bpmn:outgoing>
       <bpmn:dataOutputAssociation id="DataOutputAssociation_0biua5u">
         <bpmn:targetRef>DataStoreReference_0z8lhwg</bpmn:targetRef>
       </bpmn:dataOutputAssociation>
     </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_0dkjdjo" sourceRef="Activity_00ekflw" targetRef="Activity_04rmnl5" />
-    <bpmn:dataStoreReference id="DataStoreReference_0z8lhwg" name="Commuto Swap Contract Storage" />
-    <bpmn:task id="Activity_04rmnl5" name="Emit SwapFilled event">
-      <bpmn:incoming>Flow_0dkjdjo</bpmn:incoming>
-    </bpmn:task>
   </bpmn:process>
   <bpmn:category id="Category_0f7mjqd">
     <bpmn:categoryValue id="CategoryValue_13009kv" value="getSwap" />
   </bpmn:category>
   <bpmn:process id="Process_1aapqno">
+    <bpmn:dataObjectReference id="DataObjectReference_04qmpk0" name="EVM-compatible swap object" dataObjectRef="DataObject_0txae1b" />
+    <bpmn:dataObject id="DataObject_0txae1b" />
+    <bpmn:task id="Activity_1pvbddv" name="Get returned swap">
+      <bpmn:incoming>Flow_0qizz9c</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ghpain</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_16klbnb">
+        <bpmn:targetRef>DataObjectReference_04qmpk0</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_1j4bt5v" name="Call Commuto&#39;s getSwap method, passing UUID of swap">
+      <bpmn:incoming>Flow_1blllh1</bpmn:incoming>
+      <bpmn:outgoing>Flow_0qizz9c</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_0cgr66m" name="Signature verification successful?">
+      <bpmn:incoming>Flow_0tqdc7b</bpmn:incoming>
+      <bpmn:outgoing>Flow_1eirkbp</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1blllh1</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Activity_1q182gq" name="Hash encrypted payload and verify message signature with public key">
+      <bpmn:incoming>Flow_1e20h34</bpmn:incoming>
+      <bpmn:outgoing>Flow_0tqdc7b</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_10u0g77">
+        <bpmn:targetRef>DataObjectReference_1wqam1r</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1kjmsm6">
+        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_1wqam1r" name="Restored public key" dataObjectRef="DataObject_1qfaf0w" />
+    <bpmn:dataObject id="DataObject_1qfaf0w" />
+    <bpmn:task id="Activity_0qo0z2i" name="Restore public key from &#34;pubKey&#34; field">
+      <bpmn:incoming>Flow_0j0durw</bpmn:incoming>
+      <bpmn:outgoing>Flow_1e20h34</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0l4ztjd">
+        <bpmn:targetRef>DataObjectReference_1wqam1r</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1y6fdjd">
+        <bpmn:targetRef>DataObjectReference_04om6jl</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_00ce9vn" name="Confirm &#34;msgType&#34; = &#34;takerInfo&#34; and &#34;swapId&#34; is correct">
+      <bpmn:incoming>Flow_18r02ct</bpmn:incoming>
+      <bpmn:outgoing>Flow_0j0durw</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0wg7lyj">
+        <bpmn:targetRef>DataObjectReference_04om6jl</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_04om6jl" name="Decrypted payload" dataObjectRef="DataObject_1mqtuee" />
+    <bpmn:dataObject id="DataObject_1mqtuee" />
+    <bpmn:task id="Activity_04iotav" name="Decrypt message payload using restored key and IV">
+      <bpmn:incoming>Flow_0xj87k6</bpmn:incoming>
+      <bpmn:outgoing>Flow_18r02ct</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1terss8">
+        <bpmn:targetRef>DataObjectReference_04om6jl</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1f8nz34">
+        <bpmn:targetRef>DataObjectReference_06ypq9p</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0202zaz">
+        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_06ypq9p" name="Restored AES key + IV" dataObjectRef="DataObject_163sbsk" />
+    <bpmn:dataObject id="DataObject_163sbsk" />
+    <bpmn:task id="Activity_0j2n7mc" name="Decrypt and restore encrypted key and IV in message">
+      <bpmn:incoming>Flow_141wwff</bpmn:incoming>
+      <bpmn:outgoing>Flow_0xj87k6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0i4ja4x">
+        <bpmn:targetRef>DataObjectReference_06ypq9p</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0yjzecb">
+        <bpmn:targetRef>DataObjectReference_1qzmris</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1ihtzn2">
+        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_1qzmris" name="Retrieved key pair" dataObjectRef="DataObject_18n2be3" />
+    <bpmn:dataObject id="DataObject_18n2be3" />
+    <bpmn:dataStoreReference id="DataStoreReference_002qu7c" name="Commuto Interface Database" />
+    <bpmn:dataObjectReference id="DataObjectReference_04oh8e9" name="takerInfo message" dataObjectRef="DataObject_1vjmdbf" />
+    <bpmn:dataObject id="DataObject_1vjmdbf" />
+    <bpmn:task id="Activity_0qwp6x3" name="Retrieve RSA key pair specified in message&#39;s &#34;recipient&#34; field">
+      <bpmn:incoming>Flow_053mtm5</bpmn:incoming>
+      <bpmn:outgoing>Flow_141wwff</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0q2x77r">
+        <bpmn:targetRef>DataObjectReference_1qzmris</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_037u0bd">
+        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1cvwt2o">
+        <bpmn:targetRef>DataStoreReference_002qu7c</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_0a74a5g" name="Listen to Matrix room for taker&#39;s takerInfo message">
+      <bpmn:incoming>Flow_1eirkbp</bpmn:incoming>
+      <bpmn:incoming>Flow_191hhhw</bpmn:incoming>
+      <bpmn:outgoing>Flow_053mtm5</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0p21c4s">
+        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_1is8zdg" name="Set swap&#39;s status to &#34;awaitingTakerInfo&#34;">
+      <bpmn:incoming>Flow_15drxfy</bpmn:incoming>
+      <bpmn:outgoing>Flow_191hhhw</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1pw8k1o">
+        <bpmn:targetRef>DataStoreReference_0jno4vw</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="DataStoreReference_0jno4vw" name="Commuto Interface Database" />
+    <bpmn:task id="Activity_06z1uci" name="Transform local offer object into swap object">
+      <bpmn:incoming>Flow_1womujq</bpmn:incoming>
+      <bpmn:outgoing>Flow_15drxfy</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xzd0zf">
+        <bpmn:targetRef>DataStoreReference_0jno4vw</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_1qtth6g" name="Wait for emission of offer&#39;s OfferTaken event">
+      <bpmn:incoming>Flow_01tkkmq</bpmn:incoming>
+      <bpmn:outgoing>Flow_1womujq</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Activity_0xjmk10" name="Update local offer&#39;s status to &#34;offerOpened&#34;">
+      <bpmn:incoming>Flow_1e4e3kj</bpmn:incoming>
+      <bpmn:outgoing>Flow_01tkkmq</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_04nidxo">
+        <bpmn:targetRef>DataStoreReference_1saal34</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_08dkmu0" name="Send PKA message to CIN Matrix room">
+      <bpmn:incoming>Flow_1i2od7r</bpmn:incoming>
+      <bpmn:outgoing>Flow_1e4e3kj</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0mmrdgj">
+        <bpmn:targetRef>DataObjectReference_18cvaw4</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="DataStoreReference_035rf8d" name="Commuto Interface Database" />
+    <bpmn:dataObjectReference id="DataObjectReference_18cvaw4" name="Public Key Announcement Message" dataObjectRef="DataObject_0mxbutz" />
+    <bpmn:dataObject id="DataObject_0mxbutz" />
+    <bpmn:task id="Activity_0tar6ir" name="Prepare Public Key Announcement message">
+      <bpmn:incoming>Flow_0qxzqyu</bpmn:incoming>
+      <bpmn:outgoing>Flow_1i2od7r</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_11nu171">
+        <bpmn:targetRef>DataObjectReference_18cvaw4</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1ib5i9o">
+        <bpmn:targetRef>DataStoreReference_1saal34</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_0nsk8xu" name="Update local offer&#39;s status to &#34;awaitingPKAnnouncement&#34;">
+      <bpmn:incoming>Flow_0iwopb8</bpmn:incoming>
+      <bpmn:outgoing>Flow_0qxzqyu</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1ynwlq4">
+        <bpmn:targetRef>DataStoreReference_1saal34</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_1h63ear" name="Payment method details JSON string" dataObjectRef="DataObject_1m2n668" />
+    <bpmn:dataObject id="DataObject_1m2n668" />
+    <bpmn:dataObjectReference id="DataObjectReference_0n4aar6" name="Type 4 UUID" dataObjectRef="DataObject_1roljmp" />
+    <bpmn:dataObject id="DataObject_1roljmp" />
+    <bpmn:task id="Activity_0lei3d1" name="Wait for emission of new offer&#39;s OfferOpened event">
+      <bpmn:incoming>Flow_0pe3fwx</bpmn:incoming>
+      <bpmn:outgoing>Flow_0iwopb8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="DataStoreReference_1saal34" name="Commuto Interface Database" />
+    <bpmn:task id="Activity_19a56uf" name="Save local offer object to local database">
+      <bpmn:incoming>Flow_0snp3a4</bpmn:incoming>
+      <bpmn:outgoing>Flow_0pe3fwx</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1h1snm0">
+        <bpmn:targetRef>DataStoreReference_1saal34</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1z0vb78">
+        <bpmn:targetRef>DataObjectReference_1nwvmsz</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_0ub0rzg" name="Update status of local offer object to &#34;newOfferTxPublished&#34;">
+      <bpmn:incoming>Flow_096qyx6</bpmn:incoming>
+      <bpmn:outgoing>Flow_0snp3a4</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_09izn59">
+        <bpmn:targetRef>DataObjectReference_1nwvmsz</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_1nwvmsz" name="Local offer object" dataObjectRef="DataObject_0ctgj7v" />
+    <bpmn:dataObject id="DataObject_0ctgj7v" />
+    <bpmn:task id="Activity_1bxu0p8" name="Create local offer object with all relevant information">
+      <bpmn:incoming>Flow_0j48iz7</bpmn:incoming>
+      <bpmn:outgoing>Flow_096qyx6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0esofdz">
+        <bpmn:targetRef>DataObjectReference_1nwvmsz</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_0ej4oeb" name="Call Commuto&#39;s newOffer method, passing offer object and UUID">
+      <bpmn:incoming>Flow_1wnoiei</bpmn:incoming>
+      <bpmn:outgoing>Flow_0j48iz7</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_15dfu9o">
+        <bpmn:targetRef>DataObjectReference_0n4aar6</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0s1rpag">
+        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_1q31e0x" name="Create payment method details JSON string">
+      <bpmn:incoming>Flow_04du56t</bpmn:incoming>
+      <bpmn:outgoing>Flow_1wnoiei</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1uwo0fx">
+        <bpmn:targetRef>DataObjectReference_1h63ear</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_09b9xia" name="Specify offer&#39;s settlement methods in UTF8 bytes">
+      <bpmn:incoming>Flow_12qowve</bpmn:incoming>
+      <bpmn:outgoing>Flow_04du56t</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0ykxisl">
+        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_0gd1x8o" name="EVM-compatible offer object" dataObjectRef="DataObject_012pdo3" />
+    <bpmn:dataObject id="DataObject_012pdo3" />
+    <bpmn:task id="Activity_0lr2yh1" name="Specify price of offer as UTF8 bytes">
+      <bpmn:incoming>Flow_1ntswk3</bpmn:incoming>
+      <bpmn:outgoing>Flow_12qowve</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1i61wwa">
+        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_1k2dbux" name="Set interfaceId property of offer object to SHA256 hash of public key">
+      <bpmn:incoming>Flow_0exgpfk</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ntswk3</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xk19dh">
+        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_04ybudz">
+        <bpmn:targetRef>DataObjectReference_0iniq7f</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_02lw4fz" name="Create EVM-compatible offer object">
+      <bpmn:incoming>Flow_0k9bser</bpmn:incoming>
+      <bpmn:outgoing>Flow_0exgpfk</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1kadghz">
+        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_0iniq7f" name="2048-bit RSA key pair" dataObjectRef="DataObject_0r554em" />
+    <bpmn:dataObject id="DataObject_0r554em" />
+    <bpmn:startEvent id="Event_06rti5f">
+      <bpmn:outgoing>Flow_0lhxq4f</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Activity_0ajer48" name="Generate and store new 2048-bit RSA key pair and Type 4 UUID">
+      <bpmn:incoming>Flow_0lhxq4f</bpmn:incoming>
+      <bpmn:outgoing>Flow_0k9bser</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_00wv04x">
+        <bpmn:targetRef>DataObjectReference_0iniq7f</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1q4mc0h">
+        <bpmn:targetRef>DataObjectReference_0n4aar6</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_18uqncb">
+        <bpmn:targetRef>DataStoreReference_035rf8d</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1nx869n" sourceRef="Activity_1g92lri" targetRef="Activity_0zpm1ev" />
+    <bpmn:sequenceFlow id="Flow_007nb9b" sourceRef="Activity_0x1xion" targetRef="Activity_1g92lri" />
+    <bpmn:sequenceFlow id="Flow_0xvbkhh" sourceRef="Activity_0hy176x" targetRef="Activity_0x1xion" />
+    <bpmn:sequenceFlow id="Flow_15j5xgj" sourceRef="Activity_1dmwfdc" targetRef="Activity_0hy176x" />
+    <bpmn:sequenceFlow id="Flow_1hm4wdn" sourceRef="Activity_11ab573" targetRef="Activity_1dmwfdc" />
+    <bpmn:sequenceFlow id="Flow_12eyj2x" sourceRef="Activity_1ueuxfh" targetRef="Activity_11ab573" />
+    <bpmn:sequenceFlow id="Flow_03sepcd" sourceRef="Activity_06mpyua" targetRef="Activity_1ueuxfh" />
+    <bpmn:sequenceFlow id="Flow_1ex80z1" sourceRef="Activity_16lp2s2" targetRef="Activity_06mpyua" />
+    <bpmn:sequenceFlow id="Flow_05stq3y" sourceRef="Activity_1qdcf88" targetRef="Activity_16lp2s2" />
+    <bpmn:sequenceFlow id="Flow_0qizz9c" sourceRef="Activity_1j4bt5v" targetRef="Activity_1pvbddv" />
+    <bpmn:sequenceFlow id="Flow_1eirkbp" name="No" sourceRef="Gateway_0cgr66m" targetRef="Activity_0a74a5g" />
+    <bpmn:sequenceFlow id="Flow_0tqdc7b" sourceRef="Activity_1q182gq" targetRef="Gateway_0cgr66m" />
+    <bpmn:sequenceFlow id="Flow_1e20h34" sourceRef="Activity_0qo0z2i" targetRef="Activity_1q182gq" />
+    <bpmn:sequenceFlow id="Flow_0j0durw" sourceRef="Activity_00ce9vn" targetRef="Activity_0qo0z2i" />
+    <bpmn:sequenceFlow id="Flow_18r02ct" sourceRef="Activity_04iotav" targetRef="Activity_00ce9vn" />
+    <bpmn:sequenceFlow id="Flow_0xj87k6" sourceRef="Activity_0j2n7mc" targetRef="Activity_04iotav" />
+    <bpmn:sequenceFlow id="Flow_141wwff" sourceRef="Activity_0qwp6x3" targetRef="Activity_0j2n7mc" />
+    <bpmn:sequenceFlow id="Flow_053mtm5" sourceRef="Activity_0a74a5g" targetRef="Activity_0qwp6x3" />
+    <bpmn:sequenceFlow id="Flow_191hhhw" sourceRef="Activity_1is8zdg" targetRef="Activity_0a74a5g" />
+    <bpmn:sequenceFlow id="Flow_15drxfy" sourceRef="Activity_06z1uci" targetRef="Activity_1is8zdg" />
+    <bpmn:sequenceFlow id="Flow_1womujq" sourceRef="Activity_1qtth6g" targetRef="Activity_06z1uci" />
+    <bpmn:sequenceFlow id="Flow_01tkkmq" sourceRef="Activity_0xjmk10" targetRef="Activity_1qtth6g" />
+    <bpmn:sequenceFlow id="Flow_1e4e3kj" sourceRef="Activity_08dkmu0" targetRef="Activity_0xjmk10" />
+    <bpmn:sequenceFlow id="Flow_1i2od7r" sourceRef="Activity_0tar6ir" targetRef="Activity_08dkmu0" />
+    <bpmn:sequenceFlow id="Flow_0qxzqyu" sourceRef="Activity_0nsk8xu" targetRef="Activity_0tar6ir" />
+    <bpmn:sequenceFlow id="Flow_0iwopb8" sourceRef="Activity_0lei3d1" targetRef="Activity_0nsk8xu" />
+    <bpmn:sequenceFlow id="Flow_0pe3fwx" sourceRef="Activity_19a56uf" targetRef="Activity_0lei3d1" />
+    <bpmn:sequenceFlow id="Flow_0snp3a4" sourceRef="Activity_0ub0rzg" targetRef="Activity_19a56uf" />
+    <bpmn:sequenceFlow id="Flow_096qyx6" sourceRef="Activity_1bxu0p8" targetRef="Activity_0ub0rzg" />
+    <bpmn:sequenceFlow id="Flow_0j48iz7" sourceRef="Activity_0ej4oeb" targetRef="Activity_1bxu0p8" />
+    <bpmn:sequenceFlow id="Flow_0k9bser" sourceRef="Activity_0ajer48" targetRef="Activity_02lw4fz" />
+    <bpmn:sequenceFlow id="Flow_0lhxq4f" sourceRef="Event_06rti5f" targetRef="Activity_0ajer48" />
+    <bpmn:sequenceFlow id="Flow_04du56t" sourceRef="Activity_09b9xia" targetRef="Activity_1q31e0x" />
+    <bpmn:sequenceFlow id="Flow_12qowve" sourceRef="Activity_0lr2yh1" targetRef="Activity_09b9xia" />
+    <bpmn:sequenceFlow id="Flow_1ntswk3" sourceRef="Activity_1k2dbux" targetRef="Activity_0lr2yh1" />
+    <bpmn:sequenceFlow id="Flow_0exgpfk" sourceRef="Activity_02lw4fz" targetRef="Activity_1k2dbux" />
+    <bpmn:sequenceFlow id="Flow_1ftafxh" sourceRef="Activity_0zpm1ev" targetRef="Activity_1x3ofhr" />
+    <bpmn:sequenceFlow id="Flow_0ilslku" sourceRef="Activity_1x3ofhr" targetRef="Gateway_0l4au43" />
+    <bpmn:sequenceFlow id="Flow_0tfkz5x" sourceRef="Gateway_0l4au43" targetRef="Event_0pt97k9" />
+    <bpmn:sequenceFlow id="Flow_1r51osx" sourceRef="Gateway_0l4au43" targetRef="Activity_0recfe2" />
+    <bpmn:sequenceFlow id="Flow_18g7bpa" sourceRef="Activity_0recfe2" targetRef="Activity_1thvpkr" />
+    <bpmn:sequenceFlow id="Flow_12l4t78" sourceRef="Activity_1thvpkr" targetRef="Activity_0glnaf2" />
+    <bpmn:sequenceFlow id="Flow_1l1473n" sourceRef="Activity_0glnaf2" targetRef="Activity_0yvpv8r" />
+    <bpmn:sequenceFlow id="Flow_1dqnvjm" sourceRef="Activity_0yvpv8r" targetRef="Event_0pt97k9" />
+    <bpmn:sequenceFlow id="Flow_1wnoiei" sourceRef="Activity_1q31e0x" targetRef="Activity_0ej4oeb" />
+    <bpmn:sequenceFlow id="Flow_0ghpain" sourceRef="Activity_1pvbddv" targetRef="Activity_1qdcf88" />
+    <bpmn:sequenceFlow id="Flow_1blllh1" name="Yes" sourceRef="Gateway_0cgr66m" targetRef="Activity_1j4bt5v" />
+    <bpmn:intermediateThrowEvent id="Event_0pt97k9" name="Begin Phase 2">
+      <bpmn:incoming>Flow_0tfkz5x</bpmn:incoming>
+      <bpmn:incoming>Flow_1dqnvjm</bpmn:incoming>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:dataStoreReference id="DataStoreReference_1rxu00r" name="Commuto Interface Database" />
+    <bpmn:task id="Activity_0yvpv8r" name="Update status of swap to &#34;makerAsSellerDepositLocked&#34;">
+      <bpmn:incoming>Flow_1l1473n</bpmn:incoming>
+      <bpmn:outgoing>Flow_1dqnvjm</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xq11oa">
+        <bpmn:targetRef>DataStoreReference_1rxu00r</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_0glnaf2" name="Wait for SwapFilled event corresponding to swap">
+      <bpmn:incoming>Flow_12l4t78</bpmn:incoming>
+      <bpmn:outgoing>Flow_1l1473n</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Activity_1thvpkr" name="Call Commuto&#39;s fillSwap method, passing swap UUID">
+      <bpmn:incoming>Flow_18g7bpa</bpmn:incoming>
+      <bpmn:outgoing>Flow_12l4t78</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Activity_0recfe2" name="Begin listening for SwapFilled event corresponding to swap">
+      <bpmn:incoming>Flow_1r51osx</bpmn:incoming>
+      <bpmn:outgoing>Flow_18g7bpa</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_0l4au43" name="Is swap maker-as-seller?">
+      <bpmn:incoming>Flow_0ilslku</bpmn:incoming>
+      <bpmn:outgoing>Flow_0tfkz5x</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1r51osx</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Activity_0zpm1ev" name="Send prepared message string to CIN Matrix room">
+      <bpmn:incoming>Flow_1nx869n</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ftafxh</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Activity_1x3ofhr" name="Update swap&#39;s status to &#34;paymentInfoSent">
+      <bpmn:incoming>Flow_1ftafxh</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ilslku</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_000q2kz">
+        <bpmn:targetRef>DataStoreReference_1fmajwy</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="DataStoreReference_1fmajwy" name="Commuto Interface Database" />
     <bpmn:dataObjectReference id="DataObjectReference_1agvovm" name="Prepared message string" dataObjectRef="DataObject_1oy9lz4" />
     <bpmn:dataObject id="DataObject_1oy9lz4" />
     <bpmn:task id="Activity_1g92lri" name="Set &#34;encryptedKey&#34; and &#34;encryptedIV message fields">
@@ -268,7 +615,7 @@
       </bpmn:dataOutputAssociation>
     </bpmn:task>
     <bpmn:task id="Activity_1qdcf88" name="Associate taker&#39;s public key with taker&#39;s interface id and save locally">
-      <bpmn:incoming>Flow_0m527wp</bpmn:incoming>
+      <bpmn:incoming>Flow_0ghpain</bpmn:incoming>
       <bpmn:outgoing>Flow_05stq3y</bpmn:outgoing>
       <bpmn:dataOutputAssociation id="DataOutputAssociation_19zjsv1">
         <bpmn:targetRef>DataStoreReference_0b2j6zb</bpmn:targetRef>
@@ -277,409 +624,8 @@
         <bpmn:targetRef>DataObjectReference_1wqam1r</bpmn:targetRef>
       </bpmn:dataOutputAssociation>
     </bpmn:task>
-    <bpmn:exclusiveGateway id="Gateway_09wckr5" name="Do values match?">
-      <bpmn:incoming>Flow_1d440s3</bpmn:incoming>
-      <bpmn:outgoing>Flow_11cxob6</bpmn:outgoing>
-      <bpmn:outgoing>Flow_0m527wp</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:task id="Activity_1kgurx9" name="Compare takerExtraData from swap with value from message">
-      <bpmn:incoming>Flow_0r38oss</bpmn:incoming>
-      <bpmn:outgoing>Flow_1d440s3</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0jt2u6k">
-        <bpmn:targetRef>DataObjectReference_04qmpk0</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_14r2pt8">
-        <bpmn:targetRef>DataObjectReference_0s8w4qp</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_04qmpk0" name="EVM-compatible swap object" dataObjectRef="DataObject_0txae1b" />
-    <bpmn:dataObject id="DataObject_0txae1b" />
-    <bpmn:task id="Activity_1pvbddv" name="Get returned swap">
-      <bpmn:incoming>Flow_0qizz9c</bpmn:incoming>
-      <bpmn:outgoing>Flow_0r38oss</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_16klbnb">
-        <bpmn:targetRef>DataObjectReference_04qmpk0</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_1j4bt5v" name="Call Commuto&#39;s getSwap method, passing UUID of swap">
-      <bpmn:incoming>Flow_19v9cem</bpmn:incoming>
-      <bpmn:outgoing>Flow_0qizz9c</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_0s8w4qp" name="&#34;takerExtraData&#34; SHA-256 hash" dataObjectRef="DataObject_0h7lu3o" />
-    <bpmn:dataObject id="DataObject_0h7lu3o" />
-    <bpmn:task id="Activity_1y8ub0d" name="Calculate SHA-256 hash of &#34;takerExtraData&#34; field">
-      <bpmn:incoming>Flow_0jzx90n</bpmn:incoming>
-      <bpmn:outgoing>Flow_19v9cem</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_12ngcni">
-        <bpmn:targetRef>DataObjectReference_0s8w4qp</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1rl5t3e">
-        <bpmn:targetRef>DataObjectReference_04om6jl</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:exclusiveGateway id="Gateway_0cgr66m" name="Signature verification successful?">
-      <bpmn:incoming>Flow_0tqdc7b</bpmn:incoming>
-      <bpmn:outgoing>Flow_0jzx90n</bpmn:outgoing>
-      <bpmn:outgoing>Flow_1eirkbp</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:task id="Activity_1q182gq" name="Hash encrypted payload and verify message signature with public key">
-      <bpmn:incoming>Flow_1e20h34</bpmn:incoming>
-      <bpmn:outgoing>Flow_0tqdc7b</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_10u0g77">
-        <bpmn:targetRef>DataObjectReference_1wqam1r</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1kjmsm6">
-        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_1wqam1r" name="Restored public key" dataObjectRef="DataObject_1qfaf0w" />
-    <bpmn:dataObject id="DataObject_1qfaf0w" />
-    <bpmn:task id="Activity_0qo0z2i" name="Restore public key from &#34;pubKey&#34; field">
-      <bpmn:incoming>Flow_0j0durw</bpmn:incoming>
-      <bpmn:outgoing>Flow_1e20h34</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0l4ztjd">
-        <bpmn:targetRef>DataObjectReference_1wqam1r</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1y6fdjd">
-        <bpmn:targetRef>DataObjectReference_04om6jl</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_00ce9vn" name="Confirm &#34;msgType&#34; = &#34;takerInfo&#34; and &#34;swapId&#34; is correct">
-      <bpmn:incoming>Flow_18r02ct</bpmn:incoming>
-      <bpmn:outgoing>Flow_0j0durw</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0wg7lyj">
-        <bpmn:targetRef>DataObjectReference_04om6jl</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_04om6jl" name="Decrypted payload" dataObjectRef="DataObject_1mqtuee" />
-    <bpmn:dataObject id="DataObject_1mqtuee" />
-    <bpmn:task id="Activity_04iotav" name="Decrypt message payload using restored key and IV">
-      <bpmn:incoming>Flow_0xj87k6</bpmn:incoming>
-      <bpmn:outgoing>Flow_18r02ct</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1terss8">
-        <bpmn:targetRef>DataObjectReference_04om6jl</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1f8nz34">
-        <bpmn:targetRef>DataObjectReference_06ypq9p</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0202zaz">
-        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_06ypq9p" name="Restored AES key + IV" dataObjectRef="DataObject_163sbsk" />
-    <bpmn:dataObject id="DataObject_163sbsk" />
-    <bpmn:task id="Activity_0j2n7mc" name="Decrypt and restore encrypted key and IV in message">
-      <bpmn:incoming>Flow_141wwff</bpmn:incoming>
-      <bpmn:outgoing>Flow_0xj87k6</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0i4ja4x">
-        <bpmn:targetRef>DataObjectReference_06ypq9p</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0yjzecb">
-        <bpmn:targetRef>DataObjectReference_1qzmris</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1ihtzn2">
-        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_1qzmris" name="Retrieved key pair" dataObjectRef="DataObject_18n2be3" />
-    <bpmn:dataObject id="DataObject_18n2be3" />
-    <bpmn:dataStoreReference id="DataStoreReference_002qu7c" name="Commuto Interface Database" />
-    <bpmn:dataObjectReference id="DataObjectReference_04oh8e9" name="takerInfo message" dataObjectRef="DataObject_1vjmdbf" />
-    <bpmn:dataObject id="DataObject_1vjmdbf" />
-    <bpmn:task id="Activity_0qwp6x3" name="Retrieve RSA key pair specified in message&#39;s &#34;recipient&#34; field">
-      <bpmn:incoming>Flow_053mtm5</bpmn:incoming>
-      <bpmn:outgoing>Flow_141wwff</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0q2x77r">
-        <bpmn:targetRef>DataObjectReference_1qzmris</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_037u0bd">
-        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1cvwt2o">
-        <bpmn:targetRef>DataStoreReference_002qu7c</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_0a74a5g" name="Listen to Matrix room for taker&#39;s takerInfo message">
-      <bpmn:incoming>Flow_11cxob6</bpmn:incoming>
-      <bpmn:incoming>Flow_1eirkbp</bpmn:incoming>
-      <bpmn:incoming>Flow_191hhhw</bpmn:incoming>
-      <bpmn:outgoing>Flow_053mtm5</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0p21c4s">
-        <bpmn:targetRef>DataObjectReference_04oh8e9</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_1is8zdg" name="Set swap&#39;s status to &#34;awaitingTakerInfo&#34;">
-      <bpmn:incoming>Flow_15drxfy</bpmn:incoming>
-      <bpmn:outgoing>Flow_191hhhw</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1pw8k1o">
-        <bpmn:targetRef>DataStoreReference_0jno4vw</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataStoreReference id="DataStoreReference_0jno4vw" name="Commuto Interface Database" />
-    <bpmn:task id="Activity_06z1uci" name="Transform local offer object into swap object">
-      <bpmn:incoming>Flow_1womujq</bpmn:incoming>
-      <bpmn:outgoing>Flow_15drxfy</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xzd0zf">
-        <bpmn:targetRef>DataStoreReference_0jno4vw</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_1qtth6g" name="Wait for emission of offer&#39;s OfferTaken event">
-      <bpmn:incoming>Flow_01tkkmq</bpmn:incoming>
-      <bpmn:outgoing>Flow_1womujq</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:task id="Activity_0xjmk10" name="Update local offer&#39;s status to &#34;offerOpened&#34;">
-      <bpmn:incoming>Flow_1e4e3kj</bpmn:incoming>
-      <bpmn:outgoing>Flow_01tkkmq</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_04nidxo">
-        <bpmn:targetRef>DataStoreReference_1saal34</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_08dkmu0" name="Send PKA message to CIN Matrix room">
-      <bpmn:incoming>Flow_1i2od7r</bpmn:incoming>
-      <bpmn:outgoing>Flow_1e4e3kj</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0mmrdgj">
-        <bpmn:targetRef>DataObjectReference_18cvaw4</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataStoreReference id="DataStoreReference_035rf8d" name="Commuto Interface Database" />
-    <bpmn:dataObjectReference id="DataObjectReference_18cvaw4" name="Public Key Announcement Message" dataObjectRef="DataObject_0mxbutz" />
-    <bpmn:dataObject id="DataObject_0mxbutz" />
-    <bpmn:task id="Activity_0tar6ir" name="Prepare Public Key Announcement message">
-      <bpmn:incoming>Flow_0qxzqyu</bpmn:incoming>
-      <bpmn:outgoing>Flow_1i2od7r</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_11nu171">
-        <bpmn:targetRef>DataObjectReference_18cvaw4</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1ib5i9o">
-        <bpmn:targetRef>DataStoreReference_1saal34</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_0nsk8xu" name="Update local offer&#39;s status to &#34;awaitingPKAnnouncement&#34;">
-      <bpmn:incoming>Flow_0iwopb8</bpmn:incoming>
-      <bpmn:outgoing>Flow_0qxzqyu</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1ynwlq4">
-        <bpmn:targetRef>DataStoreReference_1saal34</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_1h63ear" name="Payment method details JSON string" dataObjectRef="DataObject_1m2n668" />
-    <bpmn:dataObject id="DataObject_1m2n668" />
-    <bpmn:dataObjectReference id="DataObjectReference_0n4aar6" name="Type 4 UUID" dataObjectRef="DataObject_1roljmp" />
-    <bpmn:dataObject id="DataObject_1roljmp" />
-    <bpmn:task id="Activity_0lei3d1" name="Wait for emission of new offer&#39;s OfferOpened event">
-      <bpmn:incoming>Flow_0pe3fwx</bpmn:incoming>
-      <bpmn:outgoing>Flow_0iwopb8</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:dataStoreReference id="DataStoreReference_1saal34" name="Commuto Interface Database" />
-    <bpmn:task id="Activity_19a56uf" name="Save local offer object to local database">
-      <bpmn:incoming>Flow_0snp3a4</bpmn:incoming>
-      <bpmn:outgoing>Flow_0pe3fwx</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1h1snm0">
-        <bpmn:targetRef>DataStoreReference_1saal34</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1z0vb78">
-        <bpmn:targetRef>DataObjectReference_1nwvmsz</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_0ub0rzg" name="Update status of local offer object to &#34;newOfferTxPublished&#34;">
-      <bpmn:incoming>Flow_096qyx6</bpmn:incoming>
-      <bpmn:outgoing>Flow_0snp3a4</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_09izn59">
-        <bpmn:targetRef>DataObjectReference_1nwvmsz</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_1nwvmsz" name="Local offer object" dataObjectRef="DataObject_0ctgj7v" />
-    <bpmn:dataObject id="DataObject_0ctgj7v" />
-    <bpmn:task id="Activity_1bxu0p8" name="Create local offer object with all relevant information">
-      <bpmn:incoming>Flow_0j48iz7</bpmn:incoming>
-      <bpmn:outgoing>Flow_096qyx6</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0esofdz">
-        <bpmn:targetRef>DataObjectReference_1nwvmsz</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_0ej4oeb" name="Call Commuto&#39;s newOffer method, passing offer object and UUID">
-      <bpmn:incoming>Flow_0r0535n</bpmn:incoming>
-      <bpmn:outgoing>Flow_0j48iz7</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_15dfu9o">
-        <bpmn:targetRef>DataObjectReference_0n4aar6</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0s1rpag">
-        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_1f25id7" name="SHA-256 hash string and set offer&#39;s extraData property with result">
-      <bpmn:incoming>Flow_16ow8zg</bpmn:incoming>
-      <bpmn:outgoing>Flow_0r0535n</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0t85but">
-        <bpmn:targetRef>DataObjectReference_1h63ear</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0cs1xef">
-        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_1q31e0x" name="Create payment method details JSON string">
-      <bpmn:incoming>Flow_04du56t</bpmn:incoming>
-      <bpmn:outgoing>Flow_16ow8zg</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1uwo0fx">
-        <bpmn:targetRef>DataObjectReference_1h63ear</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_09b9xia" name="Specify offer&#39;s settlement methods in UTF8 bytes">
-      <bpmn:incoming>Flow_12qowve</bpmn:incoming>
-      <bpmn:outgoing>Flow_04du56t</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0ykxisl">
-        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_0gd1x8o" name="EVM-compatible offer object" dataObjectRef="DataObject_012pdo3" />
-    <bpmn:dataObject id="DataObject_012pdo3" />
-    <bpmn:task id="Activity_0lr2yh1" name="Specify price of offer as UTF8 bytes">
-      <bpmn:incoming>Flow_1ntswk3</bpmn:incoming>
-      <bpmn:outgoing>Flow_12qowve</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1i61wwa">
-        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_1k2dbux" name="Set interfaceId property of offer object to SHA256 hash of public key">
-      <bpmn:incoming>Flow_0exgpfk</bpmn:incoming>
-      <bpmn:outgoing>Flow_1ntswk3</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xk19dh">
-        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_04ybudz">
-        <bpmn:targetRef>DataObjectReference_0iniq7f</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_02lw4fz" name="Create EVM-compatible offer object">
-      <bpmn:incoming>Flow_0k9bser</bpmn:incoming>
-      <bpmn:outgoing>Flow_0exgpfk</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1kadghz">
-        <bpmn:targetRef>DataObjectReference_0gd1x8o</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_0iniq7f" name="2048-bit RSA key pair" dataObjectRef="DataObject_0r554em" />
-    <bpmn:dataObject id="DataObject_0r554em" />
-    <bpmn:startEvent id="Event_06rti5f">
-      <bpmn:outgoing>Flow_0lhxq4f</bpmn:outgoing>
-    </bpmn:startEvent>
-    <bpmn:task id="Activity_0ajer48" name="Generate and store new 2048-bit RSA key pair and Type 4 UUID">
-      <bpmn:incoming>Flow_0lhxq4f</bpmn:incoming>
-      <bpmn:outgoing>Flow_0k9bser</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_00wv04x">
-        <bpmn:targetRef>DataObjectReference_0iniq7f</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1q4mc0h">
-        <bpmn:targetRef>DataObjectReference_0n4aar6</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_18uqncb">
-        <bpmn:targetRef>DataStoreReference_035rf8d</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_1nx869n" sourceRef="Activity_1g92lri" targetRef="Activity_0zpm1ev" />
-    <bpmn:sequenceFlow id="Flow_007nb9b" sourceRef="Activity_0x1xion" targetRef="Activity_1g92lri" />
-    <bpmn:sequenceFlow id="Flow_0xvbkhh" sourceRef="Activity_0hy176x" targetRef="Activity_0x1xion" />
-    <bpmn:sequenceFlow id="Flow_15j5xgj" sourceRef="Activity_1dmwfdc" targetRef="Activity_0hy176x" />
-    <bpmn:sequenceFlow id="Flow_1hm4wdn" sourceRef="Activity_11ab573" targetRef="Activity_1dmwfdc" />
-    <bpmn:sequenceFlow id="Flow_12eyj2x" sourceRef="Activity_1ueuxfh" targetRef="Activity_11ab573" />
-    <bpmn:sequenceFlow id="Flow_03sepcd" sourceRef="Activity_06mpyua" targetRef="Activity_1ueuxfh" />
-    <bpmn:sequenceFlow id="Flow_1ex80z1" sourceRef="Activity_16lp2s2" targetRef="Activity_06mpyua" />
-    <bpmn:sequenceFlow id="Flow_05stq3y" sourceRef="Activity_1qdcf88" targetRef="Activity_16lp2s2" />
-    <bpmn:sequenceFlow id="Flow_11cxob6" name="No" sourceRef="Gateway_09wckr5" targetRef="Activity_0a74a5g" />
-    <bpmn:sequenceFlow id="Flow_0m527wp" name="Yes" sourceRef="Gateway_09wckr5" targetRef="Activity_1qdcf88" />
-    <bpmn:sequenceFlow id="Flow_1d440s3" sourceRef="Activity_1kgurx9" targetRef="Gateway_09wckr5" />
-    <bpmn:sequenceFlow id="Flow_0r38oss" sourceRef="Activity_1pvbddv" targetRef="Activity_1kgurx9" />
-    <bpmn:sequenceFlow id="Flow_0qizz9c" sourceRef="Activity_1j4bt5v" targetRef="Activity_1pvbddv" />
-    <bpmn:sequenceFlow id="Flow_19v9cem" sourceRef="Activity_1y8ub0d" targetRef="Activity_1j4bt5v" />
-    <bpmn:sequenceFlow id="Flow_0jzx90n" name="Yes" sourceRef="Gateway_0cgr66m" targetRef="Activity_1y8ub0d" />
-    <bpmn:sequenceFlow id="Flow_1eirkbp" name="No" sourceRef="Gateway_0cgr66m" targetRef="Activity_0a74a5g" />
-    <bpmn:sequenceFlow id="Flow_0tqdc7b" sourceRef="Activity_1q182gq" targetRef="Gateway_0cgr66m" />
-    <bpmn:sequenceFlow id="Flow_1e20h34" sourceRef="Activity_0qo0z2i" targetRef="Activity_1q182gq" />
-    <bpmn:sequenceFlow id="Flow_0j0durw" sourceRef="Activity_00ce9vn" targetRef="Activity_0qo0z2i" />
-    <bpmn:sequenceFlow id="Flow_18r02ct" sourceRef="Activity_04iotav" targetRef="Activity_00ce9vn" />
-    <bpmn:sequenceFlow id="Flow_0xj87k6" sourceRef="Activity_0j2n7mc" targetRef="Activity_04iotav" />
-    <bpmn:sequenceFlow id="Flow_141wwff" sourceRef="Activity_0qwp6x3" targetRef="Activity_0j2n7mc" />
-    <bpmn:sequenceFlow id="Flow_053mtm5" sourceRef="Activity_0a74a5g" targetRef="Activity_0qwp6x3" />
-    <bpmn:sequenceFlow id="Flow_191hhhw" sourceRef="Activity_1is8zdg" targetRef="Activity_0a74a5g" />
-    <bpmn:sequenceFlow id="Flow_15drxfy" sourceRef="Activity_06z1uci" targetRef="Activity_1is8zdg" />
-    <bpmn:sequenceFlow id="Flow_1womujq" sourceRef="Activity_1qtth6g" targetRef="Activity_06z1uci" />
-    <bpmn:sequenceFlow id="Flow_01tkkmq" sourceRef="Activity_0xjmk10" targetRef="Activity_1qtth6g" />
-    <bpmn:sequenceFlow id="Flow_1e4e3kj" sourceRef="Activity_08dkmu0" targetRef="Activity_0xjmk10" />
-    <bpmn:sequenceFlow id="Flow_1i2od7r" sourceRef="Activity_0tar6ir" targetRef="Activity_08dkmu0" />
-    <bpmn:sequenceFlow id="Flow_0qxzqyu" sourceRef="Activity_0nsk8xu" targetRef="Activity_0tar6ir" />
-    <bpmn:sequenceFlow id="Flow_0iwopb8" sourceRef="Activity_0lei3d1" targetRef="Activity_0nsk8xu" />
-    <bpmn:sequenceFlow id="Flow_0pe3fwx" sourceRef="Activity_19a56uf" targetRef="Activity_0lei3d1" />
-    <bpmn:sequenceFlow id="Flow_0snp3a4" sourceRef="Activity_0ub0rzg" targetRef="Activity_19a56uf" />
-    <bpmn:sequenceFlow id="Flow_096qyx6" sourceRef="Activity_1bxu0p8" targetRef="Activity_0ub0rzg" />
-    <bpmn:sequenceFlow id="Flow_0j48iz7" sourceRef="Activity_0ej4oeb" targetRef="Activity_1bxu0p8" />
-    <bpmn:sequenceFlow id="Flow_0r0535n" sourceRef="Activity_1f25id7" targetRef="Activity_0ej4oeb" />
-    <bpmn:sequenceFlow id="Flow_16ow8zg" sourceRef="Activity_1q31e0x" targetRef="Activity_1f25id7" />
-    <bpmn:sequenceFlow id="Flow_0k9bser" sourceRef="Activity_0ajer48" targetRef="Activity_02lw4fz" />
-    <bpmn:sequenceFlow id="Flow_0lhxq4f" sourceRef="Event_06rti5f" targetRef="Activity_0ajer48" />
-    <bpmn:sequenceFlow id="Flow_04du56t" sourceRef="Activity_09b9xia" targetRef="Activity_1q31e0x" />
-    <bpmn:sequenceFlow id="Flow_12qowve" sourceRef="Activity_0lr2yh1" targetRef="Activity_09b9xia" />
-    <bpmn:sequenceFlow id="Flow_1ntswk3" sourceRef="Activity_1k2dbux" targetRef="Activity_0lr2yh1" />
-    <bpmn:sequenceFlow id="Flow_0exgpfk" sourceRef="Activity_02lw4fz" targetRef="Activity_1k2dbux" />
-    <bpmn:dataStoreReference id="DataStoreReference_1fmajwy" name="Commuto Interface Database" />
-    <bpmn:sequenceFlow id="Flow_1ftafxh" sourceRef="Activity_0zpm1ev" targetRef="Activity_1x3ofhr" />
-    <bpmn:sequenceFlow id="Flow_0ilslku" sourceRef="Activity_1x3ofhr" targetRef="Gateway_0l4au43" />
-    <bpmn:exclusiveGateway id="Gateway_0l4au43" name="Is swap maker-as-seller?">
-      <bpmn:incoming>Flow_0ilslku</bpmn:incoming>
-      <bpmn:outgoing>Flow_0tfkz5x</bpmn:outgoing>
-      <bpmn:outgoing>Flow_1r51osx</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:task id="Activity_1x3ofhr" name="Update swap&#39;s status to &#34;paymentInfoSent">
-      <bpmn:incoming>Flow_1ftafxh</bpmn:incoming>
-      <bpmn:outgoing>Flow_0ilslku</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_000q2kz">
-        <bpmn:targetRef>DataStoreReference_1fmajwy</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_0zpm1ev" name="Send prepared message string to CIN Matrix room">
-      <bpmn:incoming>Flow_1nx869n</bpmn:incoming>
-      <bpmn:outgoing>Flow_1ftafxh</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_0tfkz5x" sourceRef="Gateway_0l4au43" targetRef="Event_0pt97k9" />
-    <bpmn:task id="Activity_0recfe2" name="Begin listening for SwapFilled event corresponding to swap">
-      <bpmn:incoming>Flow_1r51osx</bpmn:incoming>
-      <bpmn:outgoing>Flow_18g7bpa</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_1r51osx" sourceRef="Gateway_0l4au43" targetRef="Activity_0recfe2" />
-    <bpmn:sequenceFlow id="Flow_18g7bpa" sourceRef="Activity_0recfe2" targetRef="Activity_1thvpkr" />
-    <bpmn:task id="Activity_1thvpkr" name="Call Commuto&#39;s fillSwap method, passing swap UUID">
-      <bpmn:incoming>Flow_18g7bpa</bpmn:incoming>
-      <bpmn:outgoing>Flow_12l4t78</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:task id="Activity_0glnaf2" name="Wait for SwapFilled event corresponding to swap">
-      <bpmn:incoming>Flow_12l4t78</bpmn:incoming>
-      <bpmn:outgoing>Flow_1l1473n</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:sequenceFlow id="Flow_12l4t78" sourceRef="Activity_1thvpkr" targetRef="Activity_0glnaf2" />
-    <bpmn:sequenceFlow id="Flow_1l1473n" sourceRef="Activity_0glnaf2" targetRef="Activity_0yvpv8r" />
-    <bpmn:task id="Activity_0yvpv8r" name="Update status of swap to &#34;makerAsSellerDepositLocked&#34;">
-      <bpmn:incoming>Flow_1l1473n</bpmn:incoming>
-      <bpmn:outgoing>Flow_1dqnvjm</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xq11oa">
-        <bpmn:targetRef>DataStoreReference_1rxu00r</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataStoreReference id="DataStoreReference_1rxu00r" name="Commuto Interface Database" />
-    <bpmn:intermediateThrowEvent id="Event_0pt97k9" name="Begin Phase 2">
-      <bpmn:incoming>Flow_0tfkz5x</bpmn:incoming>
-      <bpmn:incoming>Flow_1dqnvjm</bpmn:incoming>
-    </bpmn:intermediateThrowEvent>
-    <bpmn:sequenceFlow id="Flow_1dqnvjm" sourceRef="Activity_0yvpv8r" targetRef="Event_0pt97k9" />
   </bpmn:process>
   <bpmn:process id="Process_0tyolri">
-    <bpmn:task id="Activity_1mdteh6" name="Serve messages to taker">
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0lv00l4">
-        <bpmn:targetRef>DataStoreReference_1c75pvv</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataStoreReference id="DataStoreReference_1c75pvv" name="CIN Matrix room messages" />
-    <bpmn:task id="Activity_12u5cqg" name="Receive maker info message and add to room">
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0vrp8mk">
-        <bpmn:targetRef>DataStoreReference_1c75pvv</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
     <bpmn:task id="Activity_0f4bskv" name="Serve messages to maker">
       <bpmn:dataOutputAssociation id="DataOutputAssociation_0tqagrj">
         <bpmn:targetRef>DataStoreReference_1gnfh41</bpmn:targetRef>
@@ -702,140 +648,22 @@
         <bpmn:targetRef>DataStoreReference_1j72qf6</bpmn:targetRef>
       </bpmn:dataOutputAssociation>
     </bpmn:task>
+    <bpmn:task id="Activity_1mdteh6" name="Serve messages to taker">
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0lv00l4">
+        <bpmn:targetRef>DataStoreReference_1c75pvv</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="DataStoreReference_1c75pvv" name="CIN Matrix room messages" />
+    <bpmn:task id="Activity_12u5cqg" name="Receive maker info message and add to room">
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0vrp8mk">
+        <bpmn:targetRef>DataStoreReference_1c75pvv</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
   </bpmn:process>
   <bpmn:category id="Category_03dnidg">
     <bpmn:categoryValue id="CategoryValue_1bq6gze" value="fillSwap" />
   </bpmn:category>
   <bpmn:process id="Process_1ggg8zh">
-    <bpmn:task id="Activity_1en4m7a" name="Wait for SwapFilled event corresponding to swap">
-      <bpmn:incoming>Flow_0emz1b8</bpmn:incoming>
-      <bpmn:outgoing>Flow_1j0fe2a</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:exclusiveGateway id="Gateway_1tlbeem" name="Is swap maker-as-seller?">
-      <bpmn:incoming>Flow_0v2unb1</bpmn:incoming>
-      <bpmn:outgoing>Flow_1g7tici</bpmn:outgoing>
-      <bpmn:outgoing>Flow_0emz1b8</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:dataStoreReference id="DataStoreReference_13u2rtn" name="Commuto Interface Database" />
-    <bpmn:exclusiveGateway id="Gateway_0tn176n" name="Do values match?">
-      <bpmn:incoming>Flow_007o0n4</bpmn:incoming>
-      <bpmn:outgoing>Flow_1n11z08</bpmn:outgoing>
-      <bpmn:outgoing>Flow_0zy8p60</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:task id="Activity_17z20vc" name="Store maker&#39;s payment information locally">
-      <bpmn:incoming>Flow_0zy8p60</bpmn:incoming>
-      <bpmn:outgoing>Flow_0ttnau0</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1vi4zv4">
-        <bpmn:targetRef>DataStoreReference_13u2rtn</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_04k6h5j" name="Set status of local swap object to &#34;receivedMakerInfo&#34;">
-      <bpmn:incoming>Flow_0ttnau0</bpmn:incoming>
-      <bpmn:outgoing>Flow_0v2unb1</bpmn:outgoing>
-    </bpmn:task>
-    <bpmn:dataStoreReference id="DataStoreReference_1ikwbqi" name="Commuto Interface Database" />
-    <bpmn:task id="Activity_1n5th3u" name="Compare hash of decrypted payload with &#34;makerExtraData&#34; of swap">
-      <bpmn:incoming>Flow_1d92da8</bpmn:incoming>
-      <bpmn:outgoing>Flow_007o0n4</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_00tzuos">
-        <bpmn:targetRef>DataStoreReference_1ikwbqi</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_05xqn9r">
-        <bpmn:targetRef>DataObjectReference_1aopuqj</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_1aopuqj" name="SHA-256 hash of decrypted payload" dataObjectRef="DataObject_1y325zf" />
-    <bpmn:dataObject id="DataObject_1y325zf" />
-    <bpmn:dataObjectReference id="DataObjectReference_1bjytq5" name="Decrypted Payload" dataObjectRef="DataObject_03t89ye" />
-    <bpmn:dataObject id="DataObject_03t89ye" />
-    <bpmn:task id="Activity_0ec0s21" name="Decrypt payload and calculate its SHA-256 hash">
-      <bpmn:incoming>Flow_17dq998</bpmn:incoming>
-      <bpmn:outgoing>Flow_1d92da8</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_03rs2kp">
-        <bpmn:targetRef>DataObjectReference_1aopuqj</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1dhlw0i">
-        <bpmn:targetRef>DataObjectReference_1bjytq5</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0rq5qsr">
-        <bpmn:targetRef>DataObjectReference_1w1hql1</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xls1mr">
-        <bpmn:targetRef>DataObjectReference_1c68dya</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_1w1hql1" name="Initialization Vector" dataObjectRef="DataObject_1u6ip3z" />
-    <bpmn:dataObject id="DataObject_1u6ip3z" />
-    <bpmn:dataObjectReference id="DataObjectReference_1c68dya" name="AES-256 Key" dataObjectRef="DataObject_0fkul3s" />
-    <bpmn:dataObject id="DataObject_0fkul3s" />
-    <bpmn:task id="Activity_0xyoqgp" name="Decrypt and restore AES key and IV from message">
-      <bpmn:incoming>Flow_0dknoey</bpmn:incoming>
-      <bpmn:outgoing>Flow_17dq998</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1s6ybqc">
-        <bpmn:targetRef>DataObjectReference_1w1hql1</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0orz79d">
-        <bpmn:targetRef>DataObjectReference_1c68dya</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1q9vdys">
-        <bpmn:targetRef>DataObjectReference_0fvpjrb</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_0fvpjrb" name="RSA Private Key" dataObjectRef="DataObject_19dlvwf" />
-    <bpmn:dataObject id="DataObject_19dlvwf" />
-    <bpmn:task id="Activity_1moi179" name="Retrieve private key associated with interface id in &#34;recipient&#34; field">
-      <bpmn:incoming>Flow_1fwlf29</bpmn:incoming>
-      <bpmn:outgoing>Flow_0dknoey</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_18ry5nr">
-        <bpmn:targetRef>DataStoreReference_1ikwbqi</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1t5v5ns">
-        <bpmn:targetRef>DataObjectReference_0fvpjrb</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:exclusiveGateway id="Gateway_1b0hnur" name="Signature verification successful?">
-      <bpmn:incoming>Flow_0crdjvr</bpmn:incoming>
-      <bpmn:outgoing>Flow_1w6da7y</bpmn:outgoing>
-      <bpmn:outgoing>Flow_1fwlf29</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:task id="Activity_0zv396x" name="Attempt to verify signature of message with public key">
-      <bpmn:incoming>Flow_0vtro2q</bpmn:incoming>
-      <bpmn:outgoing>Flow_0crdjvr</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0se1dkb">
-        <bpmn:targetRef>DataObjectReference_1iwjxah</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1r0ut9e">
-        <bpmn:targetRef>DataObjectReference_06rqy2w</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:dataObjectReference id="DataObjectReference_1iwjxah" name="SHA-256 hash of payload" dataObjectRef="DataObject_0anscff" />
-    <bpmn:dataObject id="DataObject_0anscff" />
-    <bpmn:dataObjectReference id="DataObjectReference_06rqy2w" name="RSA Public Key" dataObjectRef="DataObject_1veor9d" />
-    <bpmn:dataObject id="DataObject_1veor9d" />
-    <bpmn:dataStoreReference id="DataStoreReference_051rtmt" name="Commuto Interface Database" />
-    <bpmn:task id="Activity_1p5emqp" name="Calculate SHA-256 hash of payload">
-      <bpmn:incoming>Flow_0enhzlh</bpmn:incoming>
-      <bpmn:outgoing>Flow_0vtro2q</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xvbzsb">
-        <bpmn:targetRef>DataObjectReference_1iwjxah</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_14vq3da" name="Retrieve maker&#39;s public RSA key">
-      <bpmn:incoming>Flow_1ptivoz</bpmn:incoming>
-      <bpmn:outgoing>Flow_0enhzlh</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1ue3dm0">
-        <bpmn:targetRef>DataStoreReference_051rtmt</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_0psl90j">
-        <bpmn:targetRef>DataObjectReference_06rqy2w</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
-    <bpmn:task id="Activity_1c36c0s" name="Listen to CIN Matrix room for maker&#39;s info message">
-      <bpmn:incoming>Flow_1n11z08</bpmn:incoming>
-      <bpmn:incoming>Flow_1w6da7y</bpmn:incoming>
-      <bpmn:incoming>Flow_1qt8i1g</bpmn:incoming>
-      <bpmn:outgoing>Flow_1ptivoz</bpmn:outgoing>
-    </bpmn:task>
     <bpmn:task id="Activity_03qh5gb" name="Update swap&#39;s status to swapTaken">
       <bpmn:incoming>Flow_1q09ti6</bpmn:incoming>
       <bpmn:outgoing>Flow_1qt8i1g</bpmn:outgoing>
@@ -978,23 +806,11 @@
       </bpmn:dataOutputAssociation>
     </bpmn:task>
     <bpmn:task id="Activity_0mpvd9e" name="Call Commuto&#39;s takeOffer method, passing swap object and UUID">
-      <bpmn:incoming>Flow_1mcut6g</bpmn:incoming>
+      <bpmn:incoming>Flow_02s6xhz</bpmn:incoming>
       <bpmn:outgoing>Flow_1ci0toj</bpmn:outgoing>
     </bpmn:task>
     <bpmn:dataObjectReference id="DataObjectReference_05fc7un" name="2048-bit RSA key  pair" dataObjectRef="DataObject_0ipii2e" />
     <bpmn:dataObject id="DataObject_0ipii2e" />
-    <bpmn:dataObjectReference id="DataObjectReference_1n0n0os" name="Payment method details JSON string" dataObjectRef="DataObject_19vauo6" />
-    <bpmn:dataObject id="DataObject_19vauo6" />
-    <bpmn:task id="Activity_10cryoq" name="SHA-256 hash string and set as swap&#39;s takerExtraData property">
-      <bpmn:incoming>Flow_198tfz1</bpmn:incoming>
-      <bpmn:outgoing>Flow_1mcut6g</bpmn:outgoing>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1x36q4j">
-        <bpmn:targetRef>DataObjectReference_1n0n0os</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-      <bpmn:dataOutputAssociation id="DataOutputAssociation_1o22sfo">
-        <bpmn:targetRef>DataObjectReference_1mkzg2t</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>
-    </bpmn:task>
     <bpmn:dataObjectReference id="DataObjectReference_1mkzg2t" name="EVM-compatible swap object" dataObjectRef="DataObject_1shhg73" />
     <bpmn:dataObject id="DataObject_1shhg73" />
     <bpmn:task id="Activity_1ss7tel" name="Create EVM-compatible swap object with offer information">
@@ -1006,7 +822,7 @@
     </bpmn:task>
     <bpmn:task id="Activity_0mcswbj" name="Create payment method details JSON string">
       <bpmn:incoming>Flow_0xysxyl</bpmn:incoming>
-      <bpmn:outgoing>Flow_198tfz1</bpmn:outgoing>
+      <bpmn:outgoing>Flow_02s6xhz</bpmn:outgoing>
       <bpmn:dataOutputAssociation id="DataOutputAssociation_0stnudu">
         <bpmn:targetRef>DataObjectReference_1n0n0os</bpmn:targetRef>
       </bpmn:dataOutputAssociation>
@@ -1122,11 +938,7 @@
     <bpmn:sequenceFlow id="Flow_1g7tici" name="No" sourceRef="Gateway_1tlbeem" targetRef="Event_1pd8dqo" />
     <bpmn:sequenceFlow id="Flow_0emz1b8" name="Yes" sourceRef="Gateway_1tlbeem" targetRef="Activity_1en4m7a" />
     <bpmn:sequenceFlow id="Flow_0v2unb1" sourceRef="Activity_04k6h5j" targetRef="Gateway_1tlbeem" />
-    <bpmn:sequenceFlow id="Flow_1n11z08" name="No" sourceRef="Gateway_0tn176n" targetRef="Activity_1c36c0s" />
-    <bpmn:sequenceFlow id="Flow_0zy8p60" name="Yes" sourceRef="Gateway_0tn176n" targetRef="Activity_17z20vc" />
     <bpmn:sequenceFlow id="Flow_0ttnau0" sourceRef="Activity_17z20vc" targetRef="Activity_04k6h5j" />
-    <bpmn:sequenceFlow id="Flow_007o0n4" sourceRef="Activity_1n5th3u" targetRef="Gateway_0tn176n" />
-    <bpmn:sequenceFlow id="Flow_1d92da8" sourceRef="Activity_0ec0s21" targetRef="Activity_1n5th3u" />
     <bpmn:sequenceFlow id="Flow_17dq998" sourceRef="Activity_0xyoqgp" targetRef="Activity_0ec0s21" />
     <bpmn:sequenceFlow id="Flow_0dknoey" sourceRef="Activity_1moi179" targetRef="Activity_0xyoqgp" />
     <bpmn:sequenceFlow id="Flow_1w6da7y" name="No" sourceRef="Gateway_1b0hnur" targetRef="Activity_1c36c0s" />
@@ -1149,8 +961,6 @@
     <bpmn:sequenceFlow id="Flow_0vaxfs0" sourceRef="Activity_1ln18k8" targetRef="Activity_1yu43ui" />
     <bpmn:sequenceFlow id="Flow_0182njz" sourceRef="Activity_0dpganc" targetRef="Activity_1ln18k8" />
     <bpmn:sequenceFlow id="Flow_1ci0toj" sourceRef="Activity_0mpvd9e" targetRef="Activity_0dpganc" />
-    <bpmn:sequenceFlow id="Flow_1mcut6g" sourceRef="Activity_10cryoq" targetRef="Activity_0mpvd9e" />
-    <bpmn:sequenceFlow id="Flow_198tfz1" sourceRef="Activity_0mcswbj" targetRef="Activity_10cryoq" />
     <bpmn:sequenceFlow id="Flow_1ucitoa" sourceRef="Activity_1ss7tel" targetRef="Activity_1111iuz" />
     <bpmn:sequenceFlow id="Flow_00he0yc" name="Yes" sourceRef="Gateway_1s0kwc1" targetRef="Activity_1ss7tel" />
     <bpmn:sequenceFlow id="Flow_0xysxyl" sourceRef="Activity_1111iuz" targetRef="Activity_0mcswbj" />
@@ -1175,6 +985,16 @@
     <bpmn:sequenceFlow id="Flow_0cy3q80" sourceRef="Activity_1623avm" targetRef="Activity_0lmxzg5" />
     <bpmn:sequenceFlow id="Flow_0lcsq3r" sourceRef="Activity_0lmxzg5" targetRef="Gateway_1ofv8e9" />
     <bpmn:sequenceFlow id="Flow_0kv96j9" sourceRef="Activity_1rja71p" targetRef="Activity_0lmxzg5" />
+    <bpmn:sequenceFlow id="Flow_0inyphg" sourceRef="Activity_160lzxo" targetRef="Event_1pd8dqo" />
+    <bpmn:dataObjectReference id="DataObjectReference_1n0n0os" name="Payment method details JSON string" dataObjectRef="DataObject_19vauo6" />
+    <bpmn:dataObject id="DataObject_19vauo6" />
+    <bpmn:sequenceFlow id="Flow_02s6xhz" sourceRef="Activity_0mcswbj" targetRef="Activity_0mpvd9e" />
+    <bpmn:sequenceFlow id="Flow_014y5em" sourceRef="Activity_0ec0s21" targetRef="Activity_17z20vc" />
+    <bpmn:intermediateThrowEvent id="Event_1pd8dqo" name="Begin Phase 2">
+      <bpmn:incoming>Flow_1g7tici</bpmn:incoming>
+      <bpmn:incoming>Flow_0inyphg</bpmn:incoming>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:dataStoreReference id="DataStoreReference_05n7y3h" name="Commuto Interface Database" />
     <bpmn:task id="Activity_160lzxo" name="Update status of swap to &#34;makerAsSellerDepositLocked&#34;">
       <bpmn:incoming>Flow_1j0fe2a</bpmn:incoming>
       <bpmn:outgoing>Flow_0inyphg</bpmn:outgoing>
@@ -1182,17 +1002,119 @@
         <bpmn:targetRef>DataStoreReference_05n7y3h</bpmn:targetRef>
       </bpmn:dataOutputAssociation>
     </bpmn:task>
-    <bpmn:dataStoreReference id="DataStoreReference_05n7y3h" name="Commuto Interface Database" />
-    <bpmn:intermediateThrowEvent id="Event_1pd8dqo" name="Begin Phase 2">
-      <bpmn:incoming>Flow_1g7tici</bpmn:incoming>
-      <bpmn:incoming>Flow_0inyphg</bpmn:incoming>
-    </bpmn:intermediateThrowEvent>
-    <bpmn:sequenceFlow id="Flow_0inyphg" sourceRef="Activity_160lzxo" targetRef="Event_1pd8dqo" />
+    <bpmn:task id="Activity_1en4m7a" name="Wait for SwapFilled event corresponding to swap">
+      <bpmn:incoming>Flow_0emz1b8</bpmn:incoming>
+      <bpmn:outgoing>Flow_1j0fe2a</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_1tlbeem" name="Is swap maker-as-seller?">
+      <bpmn:incoming>Flow_0v2unb1</bpmn:incoming>
+      <bpmn:outgoing>Flow_1g7tici</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0emz1b8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:dataStoreReference id="DataStoreReference_13u2rtn" name="Commuto Interface Database" />
+    <bpmn:task id="Activity_17z20vc" name="Store maker&#39;s payment information locally">
+      <bpmn:incoming>Flow_014y5em</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ttnau0</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1vi4zv4">
+        <bpmn:targetRef>DataStoreReference_13u2rtn</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_04k6h5j" name="Set status of local swap object to &#34;receivedMakerInfo&#34;">
+      <bpmn:incoming>Flow_0ttnau0</bpmn:incoming>
+      <bpmn:outgoing>Flow_0v2unb1</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="DataStoreReference_1ikwbqi" name="Commuto Interface Database" />
+    <bpmn:dataObjectReference id="DataObjectReference_1bjytq5" name="Decrypted Payload" dataObjectRef="DataObject_03t89ye" />
+    <bpmn:dataObject id="DataObject_03t89ye" />
+    <bpmn:task id="Activity_0ec0s21" name="Decrypt payload">
+      <bpmn:incoming>Flow_17dq998</bpmn:incoming>
+      <bpmn:outgoing>Flow_014y5em</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1dhlw0i">
+        <bpmn:targetRef>DataObjectReference_1bjytq5</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0rq5qsr">
+        <bpmn:targetRef>DataObjectReference_1w1hql1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xls1mr">
+        <bpmn:targetRef>DataObjectReference_1c68dya</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_1w1hql1" name="Initialization Vector" dataObjectRef="DataObject_1u6ip3z" />
+    <bpmn:dataObject id="DataObject_1u6ip3z" />
+    <bpmn:dataObjectReference id="DataObjectReference_1c68dya" name="AES-256 Key" dataObjectRef="DataObject_0fkul3s" />
+    <bpmn:dataObject id="DataObject_0fkul3s" />
+    <bpmn:task id="Activity_0xyoqgp" name="Decrypt and restore AES key and IV from message">
+      <bpmn:incoming>Flow_0dknoey</bpmn:incoming>
+      <bpmn:outgoing>Flow_17dq998</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1s6ybqc">
+        <bpmn:targetRef>DataObjectReference_1w1hql1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0orz79d">
+        <bpmn:targetRef>DataObjectReference_1c68dya</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1q9vdys">
+        <bpmn:targetRef>DataObjectReference_0fvpjrb</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_0fvpjrb" name="RSA Private Key" dataObjectRef="DataObject_19dlvwf" />
+    <bpmn:dataObject id="DataObject_19dlvwf" />
+    <bpmn:task id="Activity_1moi179" name="Retrieve private key associated with interface id in &#34;recipient&#34; field">
+      <bpmn:incoming>Flow_1fwlf29</bpmn:incoming>
+      <bpmn:outgoing>Flow_0dknoey</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_18ry5nr">
+        <bpmn:targetRef>DataStoreReference_1ikwbqi</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1t5v5ns">
+        <bpmn:targetRef>DataObjectReference_0fvpjrb</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_1b0hnur" name="Signature verification successful?">
+      <bpmn:incoming>Flow_0crdjvr</bpmn:incoming>
+      <bpmn:outgoing>Flow_1w6da7y</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1fwlf29</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Activity_0zv396x" name="Attempt to verify signature of message with public key">
+      <bpmn:incoming>Flow_0vtro2q</bpmn:incoming>
+      <bpmn:outgoing>Flow_0crdjvr</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0se1dkb">
+        <bpmn:targetRef>DataObjectReference_1iwjxah</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1r0ut9e">
+        <bpmn:targetRef>DataObjectReference_06rqy2w</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObjectReference id="DataObjectReference_1iwjxah" name="SHA-256 hash of payload" dataObjectRef="DataObject_0anscff" />
+    <bpmn:dataObject id="DataObject_0anscff" />
+    <bpmn:dataObjectReference id="DataObjectReference_06rqy2w" name="RSA Public Key" dataObjectRef="DataObject_1veor9d" />
+    <bpmn:dataObject id="DataObject_1veor9d" />
+    <bpmn:dataStoreReference id="DataStoreReference_051rtmt" name="Commuto Interface Database" />
+    <bpmn:task id="Activity_1p5emqp" name="Calculate SHA-256 hash of payload">
+      <bpmn:incoming>Flow_0enhzlh</bpmn:incoming>
+      <bpmn:outgoing>Flow_0vtro2q</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1xvbzsb">
+        <bpmn:targetRef>DataObjectReference_1iwjxah</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_14vq3da" name="Retrieve maker&#39;s public RSA key">
+      <bpmn:incoming>Flow_1ptivoz</bpmn:incoming>
+      <bpmn:outgoing>Flow_0enhzlh</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1ue3dm0">
+        <bpmn:targetRef>DataStoreReference_051rtmt</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_0psl90j">
+        <bpmn:targetRef>DataObjectReference_06rqy2w</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Activity_1c36c0s" name="Listen to CIN Matrix room for maker&#39;s info message">
+      <bpmn:incoming>Flow_1w6da7y</bpmn:incoming>
+      <bpmn:incoming>Flow_1qt8i1g</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ptivoz</bpmn:outgoing>
+    </bpmn:task>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_0k5puse">
       <bpmndi:BPMNShape id="Participant_15eu1k4_di" bpmnElement="Participant_15eu1k4" isHorizontal="true">
-        <dc:Bounds x="130" y="370" width="14270" height="250" />
+        <dc:Bounds x="130" y="370" width="13980" height="250" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0iti0yk_di" bpmnElement="Flow_0iti0yk">
         <di:waypoint x="1380" y="500" />
@@ -1291,8 +1213,8 @@
         <di:waypoint x="9310" y="500" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0dkjdjo_di" bpmnElement="Flow_0dkjdjo">
-        <di:waypoint x="13860" y="490" />
-        <di:waypoint x="13940" y="490" />
+        <di:waypoint x="13570" y="490" />
+        <di:waypoint x="13650" y="490" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Activity_1jlqfdf_di" bpmnElement="Activity_1jlqfdf">
         <dc:Bounds x="1530" y="520" width="100" height="80" />
@@ -1394,19 +1316,19 @@
         <dc:Bounds x="9100" y="410" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_00ekflw_di" bpmnElement="Activity_00ekflw">
-        <dc:Bounds x="13760" y="450" width="100" height="80" />
+        <dc:Bounds x="13470" y="450" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="DataStoreReference_0z8lhwg_di" bpmnElement="DataStoreReference_0z8lhwg">
-        <dc:Bounds x="13605" y="465" width="50" height="50" />
+        <dc:Bounds x="13315" y="465" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="13588" y="522" width="84" height="27" />
+          <dc:Bounds x="13298" y="522" width="84" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_04rmnl5_di" bpmnElement="Activity_04rmnl5">
-        <dc:Bounds x="13940" y="450" width="100" height="80" />
+        <dc:Bounds x="13650" y="450" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Participant_0km8902_di" bpmnElement="Participant_0km8902" isHorizontal="true">
-        <dc:Bounds x="130" y="650" width="14270" height="340" />
+        <dc:Bounds x="130" y="650" width="13980" height="340" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0exgpfk_di" bpmnElement="Flow_0exgpfk">
         <di:waypoint x="490" y="720" />
@@ -1431,14 +1353,6 @@
       <bpmndi:BPMNEdge id="Flow_0k9bser_di" bpmnElement="Flow_0k9bser">
         <di:waypoint x="330" y="720" />
         <di:waypoint x="390" y="720" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_16ow8zg_di" bpmnElement="Flow_16ow8zg">
-        <di:waypoint x="970" y="720" />
-        <di:waypoint x="990" y="720" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0r0535n_di" bpmnElement="Flow_0r0535n">
-        <di:waypoint x="1090" y="720" />
-        <di:waypoint x="1110" y="720" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0j48iz7_di" bpmnElement="Flow_0j48iz7">
         <di:waypoint x="1210" y="720" />
@@ -1531,46 +1445,9 @@
           <dc:Bounds x="8802" y="842" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0jzx90n_di" bpmnElement="Flow_0jzx90n">
-        <di:waypoint x="8815" y="750" />
-        <di:waypoint x="8883" y="750" />
-        <di:waypoint x="8883" y="720" />
-        <di:waypoint x="8950" y="720" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="8889" y="732" width="19" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_19v9cem_di" bpmnElement="Flow_19v9cem">
-        <di:waypoint x="9050" y="720" />
-        <di:waypoint x="9100" y="720" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0qizz9c_di" bpmnElement="Flow_0qizz9c">
         <di:waypoint x="9200" y="720" />
         <di:waypoint x="9310" y="720" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0r38oss_di" bpmnElement="Flow_0r38oss">
-        <di:waypoint x="9410" y="720" />
-        <di:waypoint x="9460" y="720" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1d440s3_di" bpmnElement="Flow_1d440s3">
-        <di:waypoint x="9560" y="720" />
-        <di:waypoint x="9625" y="720" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0m527wp_di" bpmnElement="Flow_0m527wp">
-        <di:waypoint x="9675" y="720" />
-        <di:waypoint x="9760" y="720" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="9708" y="702" width="19" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_11cxob6_di" bpmnElement="Flow_11cxob6">
-        <di:waypoint x="9650" y="745" />
-        <di:waypoint x="9650" y="980" />
-        <di:waypoint x="7720" y="980" />
-        <di:waypoint x="7720" y="850" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="9662" y="773" width="15" height="14" />
-        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_05stq3y_di" bpmnElement="Flow_05stq3y">
         <di:waypoint x="9860" y="720" />
@@ -1620,37 +1497,54 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0ilslku_di" bpmnElement="Flow_0ilslku">
         <di:waypoint x="11500" y="820" />
-        <di:waypoint x="13485" y="820" />
+        <di:waypoint x="13195" y="820" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0tfkz5x_di" bpmnElement="Flow_0tfkz5x">
-        <di:waypoint x="13510" y="845" />
-        <di:waypoint x="13510" y="950" />
-        <di:waypoint x="14350" y="950" />
-        <di:waypoint x="14350" y="838" />
+        <di:waypoint x="13220" y="845" />
+        <di:waypoint x="13220" y="950" />
+        <di:waypoint x="14060" y="950" />
+        <di:waypoint x="14060" y="838" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1r51osx_di" bpmnElement="Flow_1r51osx">
-        <di:waypoint x="13535" y="820" />
-        <di:waypoint x="13610" y="820" />
+        <di:waypoint x="13245" y="820" />
+        <di:waypoint x="13320" y="820" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_18g7bpa_di" bpmnElement="Flow_18g7bpa">
-        <di:waypoint x="13710" y="820" />
-        <di:waypoint x="13760" y="820" />
+        <di:waypoint x="13420" y="820" />
+        <di:waypoint x="13470" y="820" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_12l4t78_di" bpmnElement="Flow_12l4t78">
-        <di:waypoint x="13860" y="820" />
-        <di:waypoint x="13940" y="820" />
+        <di:waypoint x="13570" y="820" />
+        <di:waypoint x="13650" y="820" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1l1473n_di" bpmnElement="Flow_1l1473n">
-        <di:waypoint x="14040" y="820" />
-        <di:waypoint x="14075" y="820" />
-        <di:waypoint x="14075" y="770" />
-        <di:waypoint x="14110" y="770" />
+        <di:waypoint x="13750" y="820" />
+        <di:waypoint x="13785" y="820" />
+        <di:waypoint x="13785" y="770" />
+        <di:waypoint x="13820" y="770" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1dqnvjm_di" bpmnElement="Flow_1dqnvjm">
-        <di:waypoint x="14210" y="770" />
-        <di:waypoint x="14271" y="770" />
-        <di:waypoint x="14271" y="820" />
-        <di:waypoint x="14332" y="820" />
+        <di:waypoint x="13920" y="770" />
+        <di:waypoint x="13981" y="770" />
+        <di:waypoint x="13981" y="820" />
+        <di:waypoint x="14042" y="820" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1wnoiei_di" bpmnElement="Flow_1wnoiei">
+        <di:waypoint x="970" y="720" />
+        <di:waypoint x="1110" y="720" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ghpain_di" bpmnElement="Flow_0ghpain">
+        <di:waypoint x="9410" y="720" />
+        <di:waypoint x="9760" y="720" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1blllh1_di" bpmnElement="Flow_1blllh1">
+        <di:waypoint x="8815" y="750" />
+        <di:waypoint x="8860" y="750" />
+        <di:waypoint x="8860" y="720" />
+        <di:waypoint x="9100" y="720" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="8880" y="732" width="19" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Activity_0ajer48_di" bpmnElement="Activity_0ajer48">
         <dc:Bounds x="230" y="680" width="100" height="80" />
@@ -1684,9 +1578,6 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1q31e0x_di" bpmnElement="Activity_1q31e0x">
         <dc:Bounds x="870" y="680" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1f25id7_di" bpmnElement="Activity_1f25id7">
-        <dc:Bounds x="990" y="680" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0ej4oeb_di" bpmnElement="Activity_0ej4oeb">
         <dc:Bounds x="1110" y="680" width="100" height="80" />
@@ -1829,15 +1720,6 @@
           <dc:Bounds x="8761" y="680" width="58" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1y8ub0d_di" bpmnElement="Activity_1y8ub0d">
-        <dc:Bounds x="8950" y="680" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="DataObjectReference_0s8w4qp_di" bpmnElement="DataObjectReference_0s8w4qp">
-        <dc:Bounds x="9022" y="805" width="36" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="8999" y="862" width="82" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1j4bt5v_di" bpmnElement="Activity_1j4bt5v">
         <dc:Bounds x="9100" y="680" width="100" height="80" />
       </bpmndi:BPMNShape>
@@ -1848,15 +1730,6 @@
         <dc:Bounds x="9342" y="805" width="36" height="50" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="9320" y="862" width="81" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1kgurx9_di" bpmnElement="Activity_1kgurx9">
-        <dc:Bounds x="9460" y="680" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_09wckr5_di" bpmnElement="Gateway_09wckr5" isMarkerVisible="true">
-        <dc:Bounds x="9625" y="695" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="9605" y="671" width="89" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1qdcf88_di" bpmnElement="Activity_1qdcf88">
@@ -1940,44 +1813,44 @@
           <dc:Bounds x="10786" y="882" width="48" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_0l4au43_di" bpmnElement="Gateway_0l4au43" isMarkerVisible="true">
-        <dc:Bounds x="13485" y="795" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="13465" y="757.5" width="90" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1x3ofhr_di" bpmnElement="Activity_1x3ofhr">
         <dc:Bounds x="11400" y="780" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0zpm1ev_di" bpmnElement="Activity_0zpm1ev">
         <dc:Bounds x="11260" y="780" width="100" height="80" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0l4au43_di" bpmnElement="Gateway_0l4au43" isMarkerVisible="true">
+        <dc:Bounds x="13195" y="795" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="13175" y="757.5" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0recfe2_di" bpmnElement="Activity_0recfe2">
-        <dc:Bounds x="13610" y="780" width="100" height="80" />
+        <dc:Bounds x="13320" y="780" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1thvpkr_di" bpmnElement="Activity_1thvpkr">
-        <dc:Bounds x="13760" y="780" width="100" height="80" />
+        <dc:Bounds x="13470" y="780" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0glnaf2_di" bpmnElement="Activity_0glnaf2">
-        <dc:Bounds x="13940" y="780" width="100" height="80" />
+        <dc:Bounds x="13650" y="780" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0yvpv8r_di" bpmnElement="Activity_0yvpv8r">
-        <dc:Bounds x="14110" y="730" width="100" height="80" />
+        <dc:Bounds x="13820" y="730" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="DataStoreReference_1rxu00r_di" bpmnElement="DataStoreReference_1rxu00r">
-        <dc:Bounds x="14135" y="835" width="50" height="50" />
+        <dc:Bounds x="13845" y="835" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="14136" y="892" width="48" height="40" />
+          <dc:Bounds x="13846" y="892" width="48" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_0pt97k9_di" bpmnElement="Event_0pt97k9">
-        <dc:Bounds x="14332" y="802" width="36" height="36" />
+        <dc:Bounds x="14042" y="802" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="14314" y="778" width="72" height="14" />
+          <dc:Bounds x="14024" y="778" width="72" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Participant_1kfpafo_di" bpmnElement="Participant_1kfpafo" isHorizontal="true">
-        <dc:Bounds x="130" y="1020" width="14270" height="270" />
+        <dc:Bounds x="130" y="1020" width="13980" height="270" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0kv96j9_di" bpmnElement="Flow_0kv96j9">
         <di:waypoint x="1950" y="1140" />
@@ -2127,14 +2000,6 @@
         <di:waypoint x="4760" y="1080" />
         <di:waypoint x="4820" y="1080" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_198tfz1_di" bpmnElement="Flow_198tfz1">
-        <di:waypoint x="5080" y="1080" />
-        <di:waypoint x="5120" y="1080" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1mcut6g_di" bpmnElement="Flow_1mcut6g">
-        <di:waypoint x="5220" y="1080" />
-        <di:waypoint x="5260" y="1080" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1ci0toj_di" bpmnElement="Flow_1ci0toj">
         <di:waypoint x="5360" y="1080" />
         <di:waypoint x="5400" y="1080" />
@@ -2239,71 +2104,53 @@
         <di:waypoint x="12650" y="1080" />
         <di:waypoint x="12720" y="1080" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1d92da8_di" bpmnElement="Flow_1d92da8">
-        <di:waypoint x="12820" y="1080" />
-        <di:waypoint x="12900" y="1080" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_007o0n4_di" bpmnElement="Flow_007o0n4">
-        <di:waypoint x="13000" y="1080" />
-        <di:waypoint x="13028" y="1080" />
-        <di:waypoint x="13028" y="1110" />
-        <di:waypoint x="13055" y="1110" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0ttnau0_di" bpmnElement="Flow_0ttnau0">
-        <di:waypoint x="13270" y="1110" />
-        <di:waypoint x="13295" y="1110" />
-        <di:waypoint x="13295" y="1150" />
-        <di:waypoint x="13320" y="1150" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0zy8p60_di" bpmnElement="Flow_0zy8p60">
-        <di:waypoint x="13105" y="1110" />
-        <di:waypoint x="13170" y="1110" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="13145" y="1092" width="19" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1n11z08_di" bpmnElement="Flow_1n11z08">
-        <di:waypoint x="13080" y="1135" />
-        <di:waypoint x="13080" y="1260" />
-        <di:waypoint x="12330" y="1260" />
-        <di:waypoint x="12330" y="1250" />
-        <di:waypoint x="11620" y="1250" />
-        <di:waypoint x="11620" y="1190" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="13092" y="1163" width="15" height="14" />
-        </bpmndi:BPMNLabel>
+        <di:waypoint x="12980" y="1110" />
+        <di:waypoint x="13005" y="1110" />
+        <di:waypoint x="13005" y="1150" />
+        <di:waypoint x="13030" y="1150" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0v2unb1_di" bpmnElement="Flow_0v2unb1">
-        <di:waypoint x="13420" y="1150" />
-        <di:waypoint x="13485" y="1150" />
+        <di:waypoint x="13130" y="1150" />
+        <di:waypoint x="13195" y="1150" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0emz1b8_di" bpmnElement="Flow_0emz1b8">
-        <di:waypoint x="13535" y="1150" />
-        <di:waypoint x="13940" y="1150" />
+        <di:waypoint x="13245" y="1150" />
+        <di:waypoint x="13650" y="1150" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="13561" y="1133" width="19" height="14" />
+          <dc:Bounds x="13271" y="1133" width="19" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1g7tici_di" bpmnElement="Flow_1g7tici">
-        <di:waypoint x="13510" y="1175" />
-        <di:waypoint x="13510" y="1260" />
-        <di:waypoint x="14350" y="1260" />
-        <di:waypoint x="14350" y="1178" />
+        <di:waypoint x="13220" y="1175" />
+        <di:waypoint x="13220" y="1260" />
+        <di:waypoint x="14060" y="1260" />
+        <di:waypoint x="14060" y="1178" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="13522" y="1193" width="15" height="14" />
+          <dc:Bounds x="13232" y="1193" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1j0fe2a_di" bpmnElement="Flow_1j0fe2a">
-        <di:waypoint x="14040" y="1150" />
-        <di:waypoint x="14075" y="1150" />
-        <di:waypoint x="14075" y="1090" />
-        <di:waypoint x="14110" y="1090" />
+        <di:waypoint x="13750" y="1150" />
+        <di:waypoint x="13785" y="1150" />
+        <di:waypoint x="13785" y="1090" />
+        <di:waypoint x="13820" y="1090" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0inyphg_di" bpmnElement="Flow_0inyphg">
-        <di:waypoint x="14210" y="1090" />
-        <di:waypoint x="14271" y="1090" />
-        <di:waypoint x="14271" y="1160" />
-        <di:waypoint x="14332" y="1160" />
+        <di:waypoint x="13920" y="1090" />
+        <di:waypoint x="13981" y="1090" />
+        <di:waypoint x="13981" y="1160" />
+        <di:waypoint x="14042" y="1160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_02s6xhz_di" bpmnElement="Flow_02s6xhz">
+        <di:waypoint x="5080" y="1080" />
+        <di:waypoint x="5260" y="1080" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_014y5em_di" bpmnElement="Flow_014y5em">
+        <di:waypoint x="12820" y="1080" />
+        <di:waypoint x="12850" y="1080" />
+        <di:waypoint x="12850" y="1110" />
+        <di:waypoint x="12880" y="1110" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Activity_1rja71p_di" bpmnElement="Activity_1rja71p">
         <dc:Bounds x="1850" y="1100" width="100" height="80" />
@@ -2406,9 +2253,6 @@
         <bpmndi:BPMNLabel>
           <dc:Bounds x="4670" y="1212" width="81" height="27" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_10cryoq_di" bpmnElement="Activity_10cryoq">
-        <dc:Bounds x="5120" y="1040" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="DataObjectReference_1n0n0os_di" bpmnElement="DataObjectReference_1n0n0os">
         <dc:Bounds x="5012" y="1135" width="36" height="50" />
@@ -2599,15 +2443,6 @@
           <dc:Bounds x="12755" y="1202" width="51" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="DataObjectReference_1aopuqj_di" bpmnElement="DataObjectReference_1aopuqj">
-        <dc:Bounds x="12842" y="1145" width="36" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="12815" y="1202" width="90" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1n5th3u_di" bpmnElement="Activity_1n5th3u">
-        <dc:Bounds x="12900" y="1040" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="DataStoreReference_1ikwbqi_di" bpmnElement="DataStoreReference_1ikwbqi">
         <dc:Bounds x="12345" y="1145" width="50" height="50" />
         <bpmndi:BPMNLabel>
@@ -2615,49 +2450,43 @@
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_04k6h5j_di" bpmnElement="Activity_04k6h5j">
-        <dc:Bounds x="13320" y="1110" width="100" height="80" />
+        <dc:Bounds x="13030" y="1110" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_17z20vc_di" bpmnElement="Activity_17z20vc">
-        <dc:Bounds x="13170" y="1070" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_0tn176n_di" bpmnElement="Gateway_0tn176n" isMarkerVisible="true">
-        <dc:Bounds x="13055" y="1085" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="13035.5" y="1061" width="89" height="14" />
-        </bpmndi:BPMNLabel>
+        <dc:Bounds x="12880" y="1070" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="DataStoreReference_13u2rtn_di" bpmnElement="DataStoreReference_13u2rtn">
-        <dc:Bounds x="13195" y="1175" width="50" height="50" />
+        <dc:Bounds x="12905" y="1175" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="13196" y="1232" width="48" height="40" />
+          <dc:Bounds x="12906" y="1232" width="48" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_1tlbeem_di" bpmnElement="Gateway_1tlbeem" isMarkerVisible="true">
-        <dc:Bounds x="13485" y="1125" width="50" height="50" />
+        <dc:Bounds x="13195" y="1125" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="13465" y="1083.5" width="90" height="27" />
+          <dc:Bounds x="13175" y="1083.5" width="90" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1en4m7a_di" bpmnElement="Activity_1en4m7a">
-        <dc:Bounds x="13940" y="1110" width="100" height="80" />
+        <dc:Bounds x="13650" y="1110" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_160lzxo_di" bpmnElement="Activity_160lzxo">
-        <dc:Bounds x="14110" y="1050" width="100" height="80" />
+        <dc:Bounds x="13820" y="1050" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="DataStoreReference_05n7y3h_di" bpmnElement="DataStoreReference_05n7y3h">
-        <dc:Bounds x="14135" y="1155" width="50" height="50" />
+        <dc:Bounds x="13845" y="1155" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="14136" y="1215" width="48" height="40" />
+          <dc:Bounds x="13846" y="1215" width="48" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1pd8dqo_di" bpmnElement="Event_1pd8dqo">
-        <dc:Bounds x="14332" y="1142" width="36" height="36" />
+        <dc:Bounds x="14042" y="1142" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="14314" y="1118" width="72" height="14" />
+          <dc:Bounds x="14024" y="1118" width="72" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Participant_0gqz33z_di" bpmnElement="Participant_0gqz33z" isHorizontal="true">
-        <dc:Bounds x="130" y="90" width="14270" height="250" />
+        <dc:Bounds x="130" y="90" width="13980" height="250" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1938mur_di" bpmnElement="Activity_1938mur">
         <dc:Bounds x="2260" y="170" width="100" height="80" />
@@ -2766,21 +2595,9 @@
         <di:waypoint x="510" y="900" />
         <di:waypoint x="460" y="900" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_0cs1xef_di" bpmnElement="DataOutputAssociation_0cs1xef">
-        <di:waypoint x="1030" y="760" />
-        <di:waypoint x="1030" y="810" />
-        <di:waypoint x="500" y="810" />
-        <di:waypoint x="500" y="890" />
-        <di:waypoint x="458" y="890" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_1uwo0fx_di" bpmnElement="DataOutputAssociation_1uwo0fx">
         <di:waypoint x="919" y="760" />
         <di:waypoint x="918" y="845" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_0t85but_di" bpmnElement="DataOutputAssociation_0t85but">
-        <di:waypoint x="1050" y="760" />
-        <di:waypoint x="1050" y="865" />
-        <di:waypoint x="938" y="865" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_15dfu9o_di" bpmnElement="DataOutputAssociation_15dfu9o">
         <di:waypoint x="1160" y="760" />
@@ -2978,17 +2795,6 @@
         <di:waypoint x="7850" y="905" />
         <di:waypoint x="7778" y="905" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_1rl5t3e_di" bpmnElement="DataOutputAssociation_1rl5t3e">
-        <di:waypoint x="8970" y="760" />
-        <di:waypoint x="8970" y="890" />
-        <di:waypoint x="8480" y="890" />
-        <di:waypoint x="8480" y="810" />
-        <di:waypoint x="8270" y="810" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_12ngcni_di" bpmnElement="DataOutputAssociation_12ngcni">
-        <di:waypoint x="9042" y="760" />
-        <di:waypoint x="9042" y="805" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_1i0uoej_di" bpmnElement="DataOutputAssociation_1i0uoej">
         <di:waypoint x="9190" y="490" />
         <di:waypoint x="9190" y="555" />
@@ -3015,18 +2821,6 @@
       <bpmndi:BPMNEdge id="DataOutputAssociation_16klbnb_di" bpmnElement="DataOutputAssociation_16klbnb">
         <di:waypoint x="9361" y="760" />
         <di:waypoint x="9361" y="805" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_0jt2u6k_di" bpmnElement="DataOutputAssociation_0jt2u6k">
-        <di:waypoint x="9480" y="760" />
-        <di:waypoint x="9480" y="830" />
-        <di:waypoint x="9378" y="830" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_14r2pt8_di" bpmnElement="DataOutputAssociation_14r2pt8">
-        <di:waypoint x="9490" y="760" />
-        <di:waypoint x="9490" y="900" />
-        <di:waypoint x="9290" y="900" />
-        <di:waypoint x="9290" y="830" />
-        <di:waypoint x="9058" y="830" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_19zjsv1_di" bpmnElement="DataOutputAssociation_19zjsv1">
         <di:waypoint x="9810" y="760" />
@@ -3095,18 +2889,6 @@
       <bpmndi:BPMNEdge id="DataOutputAssociation_10a1c6z_di" bpmnElement="DataOutputAssociation_10a1c6z">
         <di:waypoint x="4711" y="1120" />
         <di:waypoint x="4712" y="1155" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_1o22sfo_di" bpmnElement="DataOutputAssociation_1o22sfo">
-        <di:waypoint x="5170" y="1120" />
-        <di:waypoint x="5170" y="1240" />
-        <di:waypoint x="4850" y="1240" />
-        <di:waypoint x="4850" y="1170" />
-        <di:waypoint x="4730" y="1170" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_1x36q4j_di" bpmnElement="DataOutputAssociation_1x36q4j">
-        <di:waypoint x="5130" y="1120" />
-        <di:waypoint x="5130" y="1155" />
-        <di:waypoint x="5048" y="1155" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_11i885t_di" bpmnElement="DataOutputAssociation_11i885t">
         <di:waypoint x="5451" y="1120" />
@@ -3410,54 +3192,37 @@
         <di:waypoint x="12782" y="1120" />
         <di:waypoint x="12782" y="1145" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_03rs2kp_di" bpmnElement="DataOutputAssociation_03rs2kp">
-        <di:waypoint x="12810" y="1120" />
-        <di:waypoint x="12810" y="1175" />
-        <di:waypoint x="12842" y="1175" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_05xqn9r_di" bpmnElement="DataOutputAssociation_05xqn9r">
-        <di:waypoint x="12910" y="1120" />
-        <di:waypoint x="12910" y="1180" />
-        <di:waypoint x="12880" y="1180" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="DataOutputAssociation_00tzuos_di" bpmnElement="DataOutputAssociation_00tzuos">
-        <di:waypoint x="12920" y="1120" />
-        <di:waypoint x="12920" y="1250" />
-        <di:waypoint x="12420" y="1250" />
-        <di:waypoint x="12420" y="1175" />
-        <di:waypoint x="12395" y="1175" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_1vi4zv4_di" bpmnElement="DataOutputAssociation_1vi4zv4">
-        <di:waypoint x="13220" y="1150" />
-        <di:waypoint x="13220" y="1175" />
+        <di:waypoint x="12930" y="1150" />
+        <di:waypoint x="12930" y="1175" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_0biua5u_di" bpmnElement="DataOutputAssociation_0biua5u">
-        <di:waypoint x="13760" y="490" />
-        <di:waypoint x="13655" y="490" />
+        <di:waypoint x="13470" y="490" />
+        <di:waypoint x="13365" y="490" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0srzm43_di" bpmnElement="Flow_0srzm43">
-        <di:waypoint x="13810" y="780" />
-        <di:waypoint x="13810" y="530" />
+        <di:waypoint x="13520" y="780" />
+        <di:waypoint x="13520" y="530" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1qw3u1g_di" bpmnElement="Flow_1qw3u1g">
-        <di:waypoint x="13990" y="530" />
-        <di:waypoint x="13990" y="780" />
+        <di:waypoint x="13700" y="530" />
+        <di:waypoint x="13700" y="780" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_095afec_di" bpmnElement="Flow_095afec">
-        <di:waypoint x="14020" y="530" />
-        <di:waypoint x="14020" y="590" />
-        <di:waypoint x="14050" y="590" />
-        <di:waypoint x="14050" y="1070" />
-        <di:waypoint x="14020" y="1070" />
-        <di:waypoint x="14020" y="1110" />
+        <di:waypoint x="13730" y="530" />
+        <di:waypoint x="13730" y="590" />
+        <di:waypoint x="13760" y="590" />
+        <di:waypoint x="13760" y="1070" />
+        <di:waypoint x="13730" y="1070" />
+        <di:waypoint x="13730" y="1110" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_1xq11oa_di" bpmnElement="DataOutputAssociation_1xq11oa">
-        <di:waypoint x="14160" y="810" />
-        <di:waypoint x="14160" y="835" />
+        <di:waypoint x="13870" y="810" />
+        <di:waypoint x="13870" y="835" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataOutputAssociation_1b6fee1_di" bpmnElement="DataOutputAssociation_1b6fee1">
-        <di:waypoint x="14160" y="1130" />
-        <di:waypoint x="14160" y="1155" />
+        <di:waypoint x="13870" y="1130" />
+        <di:waypoint x="13870" y="1155" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Group_0ysj59j_di" bpmnElement="Group_0ysj59j">
         <dc:Bounds x="1245" y="380" width="725" height="230" />
@@ -3484,9 +3249,9 @@
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Group_1c9jsjs_di" bpmnElement="Group_1c9jsjs">
-        <dc:Bounds x="13730" y="380" width="340" height="230" />
+        <dc:Bounds x="13440" y="380" width="340" height="230" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="13881" y="387" width="38" height="14" />
+          <dc:Bounds x="13591" y="387" width="38" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
     </bpmndi:BPMNPlane>
