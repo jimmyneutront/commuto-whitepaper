@@ -45,29 +45,43 @@ the OfferOpened event corresponding to their newly opened offer. The maker creat
 information specified in their EVM compatible Offer object as well as the payment details string, sets the offer
 object's status property to "newOfferTxPublished" and stores this object locally. When the maker detects the emission of
 the OfferOpened event corresponding to their newly opened offer, they set the offer object's status to
-"awaitingPKAnnouncement" and create the following JSON string:
+"awaitingPKAnnouncement" and create the following two JSON strings:
 {
-"sender":[the interface id used in offer creation],
+"sender":[the interface id used in offer creation as Base64-string-encoded bytes],
 "msgType":"pka", (pka -> public key announcement)
-"payload": {
-    "pubKey":[the public key from which the interface id used was derived in string format]
-    "offerId":[the UUID of the newly created offer in UTF-8 string format]
+"payload": null,
+"signature":null
 }
-"signature":[a Base64 string encoded signature of the SHA-256 hash of the value in the payload field, signed with the
-private key corresponding to the interface id in the "sender" field]
-}
-and then send this string as a message in the Commuto Interface Network (CIN) Matrix room. When the message is
-successfully sent, the maker updates the offer's status to "offerOpened". The maker begins listening to the blockchain
-for the emission of an OfferTaken event corresponding to their open offer.
+and (the payload string)
+{
+"pubKey":[the public key from which the interface id used was derived in string format]
+"offerId":[the UUID of the newly created offer in Base64-encoded string format]
+}.
+The maker converts the payload JSON string to UTF-8 bytes, creates a Base64-encoded string from those bytes, and sets
+the "payload" field in the first string equal to the result. Then the maker calculates the SHA-256 hash of the JSON
+string's UTF-8 byte representation, signs it with their private key, and sets the "signature" field in the first string
+equal to the Base64-encoded string representation of the signature. Then the maker sends the first string as a message
+in the Commuto Interface Network (CIN) Matrix room. When the message is successfully sent, the maker updates the offer's
+status to "offerOpened". The maker begins listening to the blockchain for the emission of an OfferTaken event
+corresponding to their open offer.
 When the taker detects the emission of the maker's OfferOpened event, they begin listening to the CIN Matrix room for a
-message in JSON string format with the "msgType" field equal to "pka", the "sender" field equal to the interfaceId
-specified in the emitted OpenOffer event, and the ["payload"]["offerId"] field equal to the offer id specified in the
-emitted OpenOffer event. If the taker finds such a message, they generate an SHA-256 hash of the value in the
-["payload"]["pubKey"] field and compare it to the value in the "sender" field. If they do not match, the taker discards
-the message and continues to listen for a valid message. If they do match, the taker creates a public key object using
-the value in the ["payload"]["pubKey"] field and attempts to verify the signature with it. If signature verification
-fails, the taker discards the message and continues to listen for a valid message. If signature verification succeeds,
-the taker associates the maker's public key with the maker's interface id and stores them locally. The taker calls the
+message in JSON string format with the "msgType" field equal to "pka" and the "sender" field equal to the interfaceId
+specified in the emitted OpenOffer event. If the taker finds such a message, they create a byte array from the
+Base64-encoded string in the message's "payload" field, and then attempt to restore the payload JSON from the byte
+array. If restoration fails, the taker discards the message and continues to listen for a valid message. If restoration
+succeeds, the taker creates a byte array from the Base64-encoded string in the payload's "offerId" field and compares it
+to the offer id specified in the emitted OfferOpened event. If byte array creation fails or the two do not match, the
+taker discards the message and continues to listen for a valid message. If the two do match, the taker creates a public
+key from the Base64-encoded string in the payload's "pubKey" field, creates a byte array from the Base64-encoded string
+in the message's "sender" field, and then compares the interface id of the public key to the byte array. If the two do
+not match, the taker discards the message and continues to listen for a valid message. If the two do match, the taker
+restores the signature byte array from the Base64-encoded string in the "signature" field and attempts to verify the
+signature using this byte array, the created public key, and the SHA-256 hash of the payload byte array. If signature
+verification fails, the taker discards the message and continues to listen for a valid message. If signature
+verification succeeds, the taker has confirmed that the key contained in the message is the maker's public key, and so
+the taker associates the maker's public key with the maker's interface id and stores them locally.
+//TODO: Resume updating here
+The taker calls the
 Commuto Protocol's getOffer function and passes the offer id specified in the public key announcement message, to get
 the terms of the offer. The taker decides to take the offer and prepares an EVM compatible Swap object corresponding to
 the previously obtained Solidity Offer object, generating and storing a new 2048-bit RSA key pair and deriving the key
