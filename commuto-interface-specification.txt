@@ -68,7 +68,6 @@ status to "offerOpened". The maker begins listening to the blockchain for the em
 corresponding to their open offer. When the maker detects the emission of the OfferTaken event corresponding to their
 offer, they call the Commuto Protocol's getSwap function and pass the id of the newly-taken offer to get the new swap
 object.
-#TODO: Taker should check that interface id of maker's key matches "sender" field in message
 When the taker detects the emission of the maker's OfferOpened event, they begin listening to the CIN Matrix room for a
 message in JSON string format with the "msgType" field equal to "pka" and the "sender" field equal to the interfaceId
 specified in the emitted OpenOffer event. If the taker finds such a message, they create a byte array from the
