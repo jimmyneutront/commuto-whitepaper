@@ -19,6 +19,7 @@ signature
 recipient
 
 Interface Interaction with Commuto Protocol:
+//TODO: Don't discard message if "msgType" doesn't match, because it could be a chat message
 //TODO: Update spec with updated message handling logic
 //TODO: Update spec to reflect storage of local offer/swap before waiting for OpenOffer/TakeOffer event emission
 //TODO: Clarify storage and retrieval of payment method details in local database
@@ -158,41 +159,70 @@ verification fails, the maker discards the message and continues to listen for a
 verification succeeds, the maker creates a byte array from the Base64-encoded string in the payload's "paymentDetails"
 field and attempts to restore the payment details JSON from the byte array. If byte array creation or JSON restoration
 fails, the maker discards the message and continues to listen for a valid message. If byte array creation and JSON
-restoration succeeds, the maker checks that the payment details correspond to the payment method that the taker chose
+restoration succeed, the maker checks that the payment details correspond to the payment method that the taker chose
 when taking the offer. If they do not match, the maker discards the message and continues to listen for a valid message.
 If they do match, the maker has confirmed that the key contained in the message is the taker's public key, and that the
 payment details contained in the message were supplied by the taker and are valid, and so the maker associates the
 taker's public key with the taker's interface id and stores them locally, and stores the taker's payment details locally
 as well.
-
-#TODO: Resume updating here
-
-The maker then sets the status of their local swap object to "receivedTakerInfo" and prepares the following JSON string:
+The maker then sets the status of their local swap object to "receivedTakerInfo" and prepares the following two JSON
+strings:
+(the message JSON string)
 {
-"sender":[the maker's interface id],
-"recipient":[the taker's interface id],
-"encryptedKey":[key used to encrypt payload, encrypted with taker's public key]
-"encryptedIV":[initialization vector used to encrypt payload, encrypted with the taker's public key]
-"payload":[the JSON string containing the maker's payment information for the payment method that the taker has chosen,
-encrypted with the AES key and initialization vector that are encrypted and stored in the "encryptedKey" and
-"encryptedIV" fields, respectively]
-"signature":[a Base64 string encoded signature of the SHA-256 hash of the encrypted value in the payload field, signed
-with the private key corresponding to the interface id in the "sender" field]
+"sender":[the maker's interface id as a Base64 string]
+"recipient":[the taker's interface id as a Base64 string]
+"encryptedKey": null,
+"encryptedIV": null,
+"payload": null,
+"signature": null
 }
-The maker then generates an AES-256 key and initialization vector and uses them to encrypt the JSON string containing
-the maker's payment information and sets the "payload" field equal to the Base64 string encoded result. The maker
-retrieves the taker's public key from storage, encrypts the AES key and initialization vector using the taker's public
-key, and sets the "encryptedKey" and "encryptedIV" fields to the Base64 string encoded results.
-The maker sends the JSON string as a message in the CIN Matrix room. When the message is successfully sent, the maker
-updates the swap's status to "paymentInfoSent".
+and (the payload JSON string)
+{
+"msgType":"takerInfo"
+"swapId":[the UUID of the swap in Base64-encoded string format]
+"paymentDetails":null
+}
+The maker converts the value from the "paymentDetails" field of their payment details JSON string to UTF-8 bytes,
+creates a Base-64 encoded string from those bytes, and sets the "paymentDetails" field in the payload JSON string equal
+to the result. Then the maker converts the payload JSON string into a UTF-8 byte array, generates a new AES-256 key and
+128 bit initialization vector, encrypts the byte array with the new key and initialization vector, and sets the
+"payload" field in the message string equal to the Base64-encoded string representation of the encrypted byte array.
+Then the maker calculates the SHA-256 hash of the encrypted byte array, signs it with their private key, and sets the
+"signature" field in the message string equal to the Base64-encoded string representation of the signature. Then the
+maker encrypts the AES-256 key and initialization vector using the taker's public key, and sets the "encryptedKey" and
+"encryptedIV" fields in the message JSON string to the respective Base64-encoded string results. Then the maker sends
+the string as a message in the CIN Matrix room.
 When the taker detects a message in the CIN Matrix room with the "sender" field equal to the maker's interface id and
-the "recipient" field equal to the taker's id, the taker retrieves the maker's public key, generates a SHA-256 hash
-of the value in the "payload" field, and verifies the signature in the "signature" field. If signature verification
-fails, the taker discards the message and continues to search for a valid message. If signature verification succeeds,
-the taker retrieves the private key associated with the interface id in the "recipient" field, decrypts the values in
-the "encryptedKey" and "encryptedIV" fields, restores the AES key and initialization vector with the decrypted results,
-and decrypts the "payload" field. Then the taker stores the maker's payment information locally and sets the status of
-their local swap object to "receivedMakerInfo".
+the "recipient" field equal to the taker's id, the taker attempts to create the encrypted payload byte array from the
+Base-64 encoded string in the message's "payload" field. If byte array creation fails, the taker discards the message
+and continues listening for another valid message. If byte array creation succeeds, the taker attempts to restore the
+signature byte array from the Base-64 encoded string in the "signature" field. If byte array restoration fails, the
+taker discards the message and continues listening for another valid message. If byte array restoration succeeds, the
+taker retrieves the maker's public key, calculates the SHA-256 hash of the encrypted payload byte array to obtain the
+signed data, and then attempts to verify the message's signature. If signature verification fails, the taker discards
+the message and continues to listen for a valid message. If signature verification succeeds, the taker creates byte
+arrays from the Base64-encoded strings in the message's "encryptedKey" and "encryptedIV" fields. If byte array creation
+fails, the taker discards the message and continues to listen for a valid message. If byte array creation succeeds, the
+taker retrieves the private key associated with the interface id in the message's "recipient" field (which is the
+maker's interface id) and attempts to decrypt the encrypted key and initialization vector byte arrays. If decryption
+fails, the taker discards the message and continues listening for a valid message. If decryption succeeds, the taker
+creates a byte array from the Base64-encoded string in the message's "payload" and attempts to decrypt it using the
+decrypted key and initialization vector. If byte array creation or payload decryption fails, the taker discards the
+message and continues listening for a valid message. If byte array creation and decryption succeeds, the taker attempts
+to restore the payload JSON from the decrypted byte array. If restoration fails, the taker discards the message and
+continues to listen for a valid message. If restoration succeeds, the taker ensures that the payload's "msgType" field
+equals "makerInfo". If it does not, the taker discards the message and continues listening for a valid message. If it
+does, the taker creates a byte array from the Base64-encoded string in the payload's "swapId" field and compares it to
+the swap id specified in the emitted OfferTaken event. If byte array creation fails or the two do not match, the taker
+discards the message and continues to listen for a valid message. If the two do match, the taker creates a byte array
+from the Base64-encoded string in the payload's "paymentDetails" field and attempts to restore the payment details JSON
+from the byte array. If byte array creation or JSON restoration fails, the taker discards the message and continues to
+listen for a valid message. If byte array creation and JSON restoration succeed, the taker checks that the payment
+details correspond to the payment method that the taker chose when taking the offer. If they do not match, the taker
+discards the message and continues to listen for a valid message. If they do match, the taker has confirmed that the
+payment details contained in the message supplied by the maker are valid, and so the taker stores the maker's payment
+details locally.
+Then the taker sets the status of their local swap object to "receivedMakerInfo".
 If the swap is a maker-as-seller swap, both the maker and the taker begin to listen for the emission of a SwapFilled
 event corresponding to their swap. Then the maker-as-seller calls Commuto Protocol's fillSwap function, passing the UUID
 of the swap and locking the swap amount of STBL in escrow. Once the maker and taker detect the emission of the
