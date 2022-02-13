@@ -79,7 +79,7 @@ Offer newOffer:
     uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
-        of amountLowerBound
+        of amountUpperBound
     SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
     bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
     bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
@@ -160,7 +160,7 @@ Offer editedOffer:
     uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
-        of amountLowerBound
+        of amountUpperBound
     SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
     bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
     bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
