@@ -271,7 +271,7 @@ the pool of accumulated service fees to the dispute agent.
 
 If dispute agents are unable to resolve a disputed swap within 1 week using the process described below, a user may open
 dispute resolution to CMTO token holders, who may approve a dispute resolution by voting. This dispute resolution
-process is described below as well.
+process is described below.
 
 Dispute Process:
 In the process described above, both the buyer and seller have opportunities to misbehave and attempt to obtain payment
@@ -279,10 +279,10 @@ from the other party without sending payment themselves. Additionally, other iss
 the buyer becoming unable to send FIAT payment, or the seller becoming unable to receive FIAT. In the event of such
 issues, users can raise a dispute to request intervention from dispute agents.
 
-Dispute agents are neutral, unbiased 3rd parties who hear arguments from both the buyer and seller concerning what went
-wrong during the swap, and determine who should receive the STBL still held in escrow. The Commuto Protocol maintains a
-list of all dispute agents, each agent's Commuto Interface Address, and each agent's public key which can be used to
-verify signatures of messages sent by each dispute agent.
+Dispute agents are neutral, unbiased, bonded 3rd parties who hear arguments from both the buyer and seller concerning
+what went wrong during the swap, and determine who should receive the STBL still held in escrow. The Commuto Protocol
+maintains a list of all dispute agents, each agent's Commuto Interface Address, and each agent's public key which can be
+used to verify signatures of messages sent by each dispute agent.
 
 A user can raise a dispute and request intervention from a refund agent through the following process:
 
