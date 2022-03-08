@@ -284,38 +284,42 @@ what went wrong during the swap, and determine who should receive the STBL still
 maintains a list of all dispute agents, each agent's Commuto Interface Address, and each agent's public key which can be
 used to verify signatures of messages sent by each dispute agent.
 
-A user can raise a dispute and request intervention from a refund agent through the following process:
+A user can raise a dispute and request intervention from dispute agents through the following process:
 
 1) A user raises a dispute by calling the Commuto Protocol smart contract function to raise a dispute, passing the
-swap's UUID. The Commuto Protocol randomly assigns 3 dispute agents from the Commuto Protocol's list of active dispute
-agents to the swap, and emits an event notifying the dispute agents that a dispute has been raised. Both users send
-information about the swap and their Commuto Interface Addresses to all three dispute agents over the peer-to-peer
-network via a Commuto Interface.
+swap's UUID and the addresses of three active dispute agents. The Commuto Protocol verifies that these dispute agents
+are still active, assigns them to the swap, and emits an event notifying the dispute agents that a dispute has been
+raised. Both users send information about the swap and their Commuto Interface Addresses to all three dispute agents
+over the peer-to-peer network via a Commuto Interface.
 
 2) Through the Commuto Interface, each user enters a private chat room with the three dispute agents and explains the
-circumstances surrounding the dispute, which may involve problems sending or receiving FIAT payment, an unresponsive
+circumstances of the dispute, which may involve problems sending or receiving FIAT payment, an unresponsive
 peer, or other reason. The dispute agents also enter a private chat room amongst themselves to discuss a resolution. The
 dispute agents have one week to determine a resolution to the dispute. They determine the amounts of STBL held in escrow
-that the buyer and seller should receive, and then they each sign an identical copy of a message containing these
-amounts. Then each dispute agent sends this signed message to each user.
+that the buyer and seller should receive, and then each dispute agent calls the Commuto Protocol smart contract
+function to submit a dispute resolution proposal, passing the amounts of STBL that the maker, taker and fee pool should
+receive.
 
-3) Either user can request dispute closure by calling The Commuto Protocol smart contract function to request disputed
-swap closure, passing the swap's UUID and signed dispute resolution messages from at least 2 out of the 3 assigned
-dispute agents. When the dispute is closed, STBL is sent to the buyer and seller as specified in the dispute resolution
-message, and the swap is now completely closed.
+3) If at least two dispute agents have submitted identical resolution proposals, then the maker and taker must each
+indicate whether they accept or reject the proposed resolution by calling the corresponding Commuto Protocol smart
+contract function. If the maker and taker both accept the resolution proposal, then the last of the two calls to the
+resolution proposal acceptance function will pay out STBL as specified in said proposal.
 
-If the dispute agents are not able to agree on a resolution within 1 week, a user can call the Commuto Protocol smart
-contract function to open up dispute resolution to CMTO token holders with the following process:
+If the dispute agents are not able to agree on a resolution within 1 week, or if the maker or taker neither accepts
+nor rejects the proposed resolution, a user can open up dispute resolution to CMTO token holders. If one of the swappers
+rejects the proposed solution, dispute resolution is opened to CMTO token holders automatically. In either case, this
+is done with the following process:
 
 1) A user opens dispute resolution to CMTO token holders by calling the Commuto Protocol smart contract function to do
-so, passing the swap's UUID, the user's Commuto Interface Address and a hash of all the offer data. This will send the
-swap amount as well as both users' security deposits to a specific address that temporarily holds users' funds until
-CMTO token holders approve a dispute resolution result, add the swap to a map of disputed swaps for which CMTO token
-holders must approve a resolution, and emit an event to notify CMTO token holders of the dispute.
+so (or by rejecting a resolution proposal), passing the swap's UUID, the user's Commuto Interface Address and a hash of
+all the offer data. This will send the swap amount as well as both users' security deposits to a specific address that
+temporarily holds users' funds until CMTO token holders approve a dispute resolution result, add the swap to a map of
+disputed swaps for which CMTO token holders must approve a resolution, and emit an event to notify CMTO token holders of
+the dispute.
 
 2) Both the buyer and seller propose a resolution, which is a message describing the amounts of STBL held in escrow that
 the buyer and seller should receive. They each broadcast these proposed resolution results across the peer-to-peer
-network, and they each call the Commuto Protocol function to add a hash of their proposed result to the offer data
+network, and they each call the Commuto Governance function to add a hash of their proposed result to the offer data
 stored in the map of disputed swaps awaiting CMTO token holder resolution.
 
 3) CMTO token holders vote on the resolutions proposed by the buyer and seller. CMTO token holders may vote in favor of
