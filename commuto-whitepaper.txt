@@ -307,25 +307,24 @@ resolution proposal acceptance function will pay out STBL as specified in said p
 
 If the dispute agents are not able to agree on a resolution within 1 week, or if the maker or taker neither accepts
 nor rejects the proposed resolution, a user can open up dispute resolution to CMTO token holders. If one of the swappers
-rejects the proposed solution, dispute resolution is opened to CMTO token holders automatically. In either case, this
-is done with the following process:
+rejects the proposed solution, dispute resolution is opened to CMTO token holders automatically. In either case, the
+swap is marked as "escalated" (which is synonymous to being open to resolution by CMTO token holders), the total amount
+that can be paid out for the swap is recorded and a DisputeEscalated event is emitted, specifying the id of the
+escalated swap, the address of the swapper who escalated the swap, and the reason the disputed swap is being escalated.
+THen the escalated dispute is resolved with the following process:
 
-1) A user opens dispute resolution to CMTO token holders by calling the Commuto Protocol smart contract function to do
-so (or by rejecting a resolution proposal), passing the swap's UUID, the user's Commuto Interface Address and a hash of
-all the offer data. This will send the swap amount as well as both users' security deposits to a specific address that
-temporarily holds users' funds until CMTO token holders approve a dispute resolution result, add the swap to a map of
-disputed swaps for which CMTO token holders must approve a resolution, and emit an event to notify CMTO token holders of
-the dispute.
+1) The maker and/or taker create a new governance proposal for disputed swap resolution, specifying the swap ID and the
+amount of STBL to be paid out to the maker and taker, and the amount (if any) of STBL to be confiscated and sent to the
+service fee pool.
 
-2) Both the buyer and seller propose a resolution, which is a message describing the amounts of STBL held in escrow that
-the buyer and seller should receive. They each broadcast these proposed resolution results across the peer-to-peer
-network, and they each call the Commuto Governance function to add a hash of their proposed result to the offer data
-stored in the map of disputed swaps awaiting CMTO token holder resolution.
+2) CMTO token holders vote on the governance proposals submitted by the swappers If proposals do not pass, the swappers
+may re-submit alternative proposals until a proposal passes.
 
-3) CMTO token holders vote on the resolutions proposed by the buyer and seller. CMTO token holders may vote in favor of
-the buyer's proposed resolution, the seller's proposed resolution, or in favor of a third result that will approve
-neither of the resolutions, and signal to the buyer and seller that they must re-submit revised resolutions. If a
-proposed resolution receives the proper number of votes, the winner will call the Commuto Protocol smart contract
-function to execute the approved resolution, passing the swap's UUID. The STBL held in escrow for the swap for which the
-resolution has been proposed will be distributed according to the proposed resolution result, and the swap is now
-completely closed.
+3) If a resolution proposal does pass, then anyone can execute the proposal via the governance timelock. When such a
+proposal is executed, the timelock calls the CommutoSwap's closeEscalatedDispute, passing the swap's id, the amount
+of STBL to be paid out to the maker, the amount of STBL to be paid out to the taker, and the amount of STBL (if any) to
+be confiscated and sent to the service fee pool. closeEscalatedDispute will ensure that the dispute is escalated and not
+already closed, that the sum of the payout amounts equals the total amount of STBL held in escrow as recorded earlier,
+and that the caller is the timelock. Then it pays the maker, taker and service fee pool according to the passed values,
+marks the escalated swap as closed, and emits an EscalatedSwapClosed event, specifying the id of the swap. Now the swap
+is completely closed.
