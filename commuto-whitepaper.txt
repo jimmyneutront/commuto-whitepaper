@@ -73,6 +73,7 @@ SHA-256 hash of a public key belonging to a Commuto Interface instance.
 bytes16 offerID: a Universally Unique Identifier (UUID) to uniquely identify the offer
 Offer newOffer:
     bool isCreated: used by contract code to check for offer existence, will be set to true by openOffer
+    bool isTaken: used by contract code to check for offer taken status, will be set to false by openOffer
     address maker: the maker's address, will be set to msg.sender by openOffer
     bytes interfaceId: the maker's Commuto Interface Id
     address stablecoin: the contract address of the stablecoin to be swapped
@@ -80,7 +81,9 @@ Offer newOffer:
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
         of amountUpperBound
-    SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
+    uint256 serviceFeeRate: the rate, expressed as a percentage times 100, of the taken swap amount that will be charged
+        to both the maker and the taker as a service fee
+    SwapDirection direction: whether the offer is in the BUY or SELL direction
     bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
     bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
@@ -106,11 +109,18 @@ Swap newSwap:
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit
     uint256 takenSwapAmount: the amount of STBL to be swapped; must be >= amountLowerBound and <= amountUpperBound
     uint256 serviceFeeAmount: used by contract code, equal to 1% of takenSwapAmount
-    SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
+    uint256 serviceFeeRate: the rate, expressed as a percentage times 100, of the taken swap amount that will be charged
+        to both the maker and the taker as a service fee
+    SwapDirection direction: whether the offer is in the BUY or SELL direction
     bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
     bytes settlementMethod: the name of the settlement method to be used for settlement in UTF-8 byte format
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol on which the swap will be
         executed
+    bool isPaymentSent: used by contract code to track payment status, will be set to false by takeOffer
+    bool isPaymentReceived: used by contract code to track payment status, will be set to false by takeOffer
+    bool hasBuyerClosed: used by contract code to track swap state, will be set to false by takeOffer
+    bool hasSellerClosed: used by contract code to track swap state, will be set to false by takeOffer
+    DisputeRaiser disputeRaiser: used by contract code to track dispute status, will be set to NONE by takeOffer
 This will validate all data to ensure it matches that of the offer being taken. If not, it will revert with a proper
 error message. This will also lock the taker's security deposit amount plus a 1% fee of STBL in escrow. If the taker is
 the seller, this will also lock the amount of STBL to be swapped in escrow. This will then mark the corresponding offer
@@ -138,22 +148,23 @@ swap id.
 
 6) The buyer and seller then each close the swap position by calling the closeSwap function, specifying:
 bytes16 swapID: the id of the swap to close
-This will ensure that payment has been received and will send the two 1% service fees to the fee pool. If the caller is
-the buyer and taker, this will ensure the buyer has not already closed the swap, and then will refund the taker's
-security deposit and will send the swap amount to the taker. If the caller is the buyer and maker, this will ensure the
-buyer has not already closed the swap, and then will refund the maker's security deposit, and will send the swap amount
-and the remainder of the max service fee to the maker. If the caller is the seller and taker, this will ensure the
-seller has not already closed the swap, and then will refund the taker's security deposit. If the caller is the seller
-and maker, this will ensure the seller has not already closed the swap, and then will refund the maker's security
-deposit and will send the remainder of the max service fee to the maker. If the caller is the buyer, this will then emit
-a BuyerClosed event, specifying the swap id. If the caller is the seller, this will then emit a SellerClosed event,
-specifying the swap id. Once buyer and seller have both requested swap closure, the swap is completely closed.
+This will ensure that payment has been received and will send each of the two 1% service fees to the fee pool. If the
+caller is the buyer and taker, this will ensure the buyer has not already closed the swap, and then will refund the
+taker's security deposit and will send the swap amount to the taker. If the caller is the buyer and maker, this will
+ensure the buyer has not already closed the swap, and then will refund the maker's security deposit, and will send the
+swap amount and the remainder of the max service fee to the maker. If the caller is the seller and taker, this will
+ensure the seller has not already closed the swap, and then will refund the taker's security deposit. If the caller is
+the seller and maker, this will ensure the seller has not already closed the swap, and then will refund the maker's
+security deposit and will send the remainder of the max service fee to the maker. If the caller is the buyer, this will
+then emit a BuyerClosed event, specifying the swap id. If the caller is the seller, this will then emit a SellerClosed
+event, specifying the swap id. Once buyer and seller have both requested swap closure, the swap is completely closed.
 
 A maker can edit the price and supported settlement methods of their offer by calling the editOffer function,
 specifying:
 bytes16 offerID: the id of the swap offer to edit
 Offer editedOffer:
     bool isCreated: used by contract code to check for offer existence, will be set to true by openOffer
+    bool isTaken: used by contract code to check for offer taken status, will be set to false by openOffer
     address maker: the maker's address, set to msg.sender by openOffer
     bytes interfaceId: the maker's Commuto Interface Id
     address stablecoin: the contract address of the stablecoin to be swapped
@@ -161,7 +172,9 @@ Offer editedOffer:
     uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
     uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
         of amountUpperBound
-    SwapDirection swapDirection: whether the offer is in the BUY or SELL direction
+    uint256 serviceFeeRate: the rate, expressed as a percentage times 100, of the taken swap amount that will be charged
+        to both the maker and the taker as a service fee
+    SwapDirection direction: whether the offer is in the BUY or SELL direction
     bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
     bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
