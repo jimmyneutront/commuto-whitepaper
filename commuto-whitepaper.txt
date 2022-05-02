@@ -194,7 +194,6 @@ not been taken. Then this will return to the maker their STBL, remove the offer 
 of all open offers, remove the records of that offer's accepted settlement methods, and will emit a OfferCanceled event
 specifying the offer id, prompting other users to remove it from their offer books.
 
-TODO: Fee percentage set by token holders
 Governance and Revenue Distribution:
 The Commuto Protocol has a governance token, referred to henceforth as CMTO, that is also used for revenue distribution.
 At the end of every week, accumulated service fees are distributed to CMTO holders, according to the percentage of all
@@ -207,13 +206,14 @@ Addition or removal of support for specific stablecoins
 Addition or removal of dispute agents
 Compensation of dispute agents (dispute agents and their roles in the dispute process are described below)
 Resolution of disputes raised by users and unresolved by dispute agents
+Changes to the service fee rate
 CMTO token holders' votes are weighted by the percentage of all issued CMTO tokens that they own.
 Issuance of new CMTO tokens, miscellaneous expenses, removal of support for a specific settlement method, addition or
-removal of support for a specific stablecoin, and addition/removal of dispute agents must receive approval from the
-holders of 50% + 1 of all issued tokens. Addition of support for a specific settlement method, compensation of dispute
-agents and resolution of disputes raised by users may only be approved if holders of at least 50% of all issued tokens
-have voted, and if 50% + 1 of all votes cast are in favor. Issues must be approved within one week of being proposed;
-otherwise they are defeated.
+removal of support for a specific stablecoin, addition/removal of dispute agents and changes to the service fee rate
+must receive approval from the holders of 50% + 1 of all issued tokens. Addition of support for a specific settlement
+method, compensation of dispute agents and resolution of disputes raised by users may only be approved if holders of at
+least 50% of all issued tokens have voted, and if 50% + 1 of all votes cast are in favor. Issues must be approved within
+one week of being proposed; otherwise they are defeated.
 
 When new proposals are added to maps, an event will be emitted indicating the map to which the proposal was added and
 the key of the new map entry.
