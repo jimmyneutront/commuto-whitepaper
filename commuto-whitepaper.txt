@@ -294,37 +294,88 @@ issues, users can raise a dispute to request intervention from dispute agents.
 
 Dispute agents are neutral, unbiased, bonded 3rd parties who hear arguments from both the buyer and seller concerning
 what went wrong during the swap, and determine who should receive the STBL still held in escrow. The Commuto Protocol
-maintains a list of all dispute agents, each agent's Commuto Interface Address, and each agent's public key which can be
-used to verify signatures of messages sent by each dispute agent.
+maintains a list of the addresses of all active dispute agents.
 
 A user can raise a dispute and request intervention from dispute agents through the following process:
 
-1) A user raises a dispute by calling the Commuto Protocol smart contract function to raise a dispute, passing the
-swap's UUID and the addresses of three active dispute agents. The Commuto Protocol verifies that these dispute agents
-are still active, assigns them to the swap, and emits an event notifying the dispute agents that a dispute has been
-raised. Both users send information about the swap and their Commuto Interface Addresses to all three dispute agents
-over the peer-to-peer network via a Commuto Interface.
+1) A swapper raises a dispute by calling the raiseDispute function, specifying:
+bytes16 swapID: the ID of the swap that is being disputed
+address disputeAgent0: the address of an active dispute agent
+address disputeAgent1: the address of an active dispute agent
+address disputeAgent2: the address of an active dispute agent
+This will ensure the swap exists, that the subitted addresses belong to active dispute agents, that the caller has chosen
+three different dispute agents, that the swap is not closed, that the swap is not already disputed, and that the caller
+is the maker or taker. Then, in a map of all disputes, raiseDispute will record who raised the dispute, the block at
+which the dispute was raised, and the addresses of the selected dispute agents. Then raiseDispute will emit a
+DisputeRaised event, specifying the addresses of all selected dispute agents.
 
+#TODO: Describe this process in the Commuto Interface Specification
 2) Through the Commuto Interface, each user enters a private chat room with the three dispute agents and explains the
 circumstances of the dispute, which may involve problems sending or receiving FIAT payment, an unresponsive
-peer, or other reason. The dispute agents also enter a private chat room amongst themselves to discuss a resolution. The
-dispute agents have one week to determine a resolution to the dispute. They determine the amounts of STBL held in escrow
-that the buyer and seller should receive, and then each dispute agent calls the Commuto Protocol smart contract
-function to submit a dispute resolution proposal, passing the amounts of STBL that the maker, taker and fee pool should
-receive.
+peer, or other reason. The dispute agents also enter a private chat room amongst themselves to discuss a resolution.
+This process is described in the Commuto Interface Specification. The dispute agents have one week to determine a
+resolution to the dispute. They determine the amounts of STBL held in escrow that the buyer and seller should receive,
+and then each dispute agent calls the proposeResolution function, specifying:
+bytes16 swapID: the ID of the disputed swap for which a resolution is being proposed
+uint256 makerPayout: the amount of STBL held in escrow that the caller believes the maker should receive
+uint256 takerPayout: the amount of STBL held in escrow that the caller believes the taker should receive
+uint256 confiscationPayout: the amount of STBL held in escrow that the caller believes should be confiscated and sent to
+    the service fee pool
+This will ensure the swap is disputed, ensure the dispute is not escalated, ensure the sum of the recommended payout
+amounts is equal to the amount of STBL that the buyer and seller have locked in escrow, minus actual service fees,
+ensure that neither the maker or taker have already reacted to resolution proposals, and ensure that the caller is one
+of the three selected dispute agents. Then proposeResolution will record the caller's proposed payout amounts and record
+that the caller has submitted a resolution proposal. Then proposeResolution will emit a ResolutionProposed event,
+specifying the ID of the disputed swap for which a resolution has been proposed and the address of the dispute agent
+who proposed the resolution.
 
-3) If at least two dispute agents have submitted identical resolution proposals, then the maker and taker must each
-indicate whether they accept or reject the proposed resolution by calling the corresponding Commuto Protocol smart
-contract function. If the maker and taker both accept the resolution proposal, then the last of the two calls to the
-resolution proposal acceptance function will pay out STBL as specified in said proposal.
+3) If at least two dispute agents have submitted identical resolution proposals, then the maker and taker should each
+indicate whether they accept or reject the proposed resolution by calling reactToResolutionProposal, specifying:
+bytes16 swapID: the ID of the disputed swap for which at least two resolutions have been proposed, to which the caller
+    is reacting
+DisputeReaction reaction: the caller's reaction to the proposed resolution
+This will ensure that reaction is not NO_REACTION, that the dispute is not been escalated, that the caller has not
+already submitted a reaction, that the caller is the maker or taker of the disputed swap, and that at least two dispute
+agents have submitted identical resolution proposals. Then reactToResolutionProposal records the caller's reaction
+to the proposed resolution and emits a ReactionSubmitted event, specifying the ID of the disputed swap for which a
+resolution proposal reaction has been submitted, the address of the caller, and the reaction. If either the maker or
+taker rejects the proposed resolution, then their call to reactToResolutionProposal automatically calls escalateDispute,
+specifying:
+bytes16 swapID: the ID of the disputed swap that is being escalated
+EscalationReason reason: the reason for escalating the dispute, which in this case is REJECTION
+The functionality of escalateDispute is described below.
 
-If the dispute agents are not able to agree on a resolution within 1 week, or if the maker or taker neither accepts
+4) If the maker and taker both accept the resolution proposal, then the maker and taker each close the swap position by
+calling the closeDisputedSwap function, specifying:
+bytes16 swapID: the id of the disputed swap to close
+This will ensure that the maker and taker have both accepted the proposed resolution, that the caller is the maker or
+taker of the swap, and that the caller has not already closed the disputed swap. Then closeDisputedSwap transfers the
+amount of STBL owed to the caller according to the accepted resolution proposals, and will transfer the caller's portion
+of the service fee to the service fee pool. If the caller's swap counterparty has already closed the swap, then
+closeDisputedSwap transfers the confiscation payout amount, if any, to the service fee pool as well, and then updates
+the dispute state to PAID_OUT. Finally, closeDisputedSwap emits a DisputeClosed event, specifying the ID of the disputed
+swap that has been closed, and the address of the caller.
+
+If the dispute agents are not able to agree on a resolution within 1 week, or if the maker and/or taker neither accepts
 nor rejects the proposed resolution, a user can open up dispute resolution to CMTO token holders. If one of the swappers
-rejects the proposed solution, dispute resolution is opened to CMTO token holders automatically. In either case, the
-swap is marked as "escalated" (which is synonymous to being open to resolution by CMTO token holders), the total amount
-that can be paid out for the swap is recorded and a DisputeEscalated event is emitted, specifying the id of the
-escalated swap, the address of the swapper who escalated the swap, and the reason the disputed swap is being escalated.
-THen the escalated dispute is resolved with the following process:
+rejects the proposed solution, dispute resolution is opened to CMTO token holders automatically. In any case, this is
+done by calling escalateDispute, specifying:
+bytes16 swapID: the ID of the disputed swap that is being escalated
+EscalationReason reason: the reason for escalating the dispute. If escalateDispute is being called automatically because
+    a swapper is rejecting a proposed resolution, then the reason is REJECTION. If escalateDispute is being called
+    because the dispute agents haven't agreed on a resolution within 1 week, then the reason is
+    NO_DISPUTE_AGENT_AGREEMENT. If escalateDispute is being called because a swapper has failed to react to a proposed
+    resolution within 1 week, then the reason is NO_COUNTERPARTY_REACTION.
+This will ensure that the caller is the maker or taker of the disputed swap, and that the dispute is not already
+escalated. If reason is NO_DISPUTE_AGENT_AGREEMENT, then escalateDispute will ensure that dispute agents have not
+agreed upon a resolution proposal, and that more than one week has passed since the dispute was raised. If reason is
+NO_COUNTERPARTY_REACTION, then escalateDispute will ensure that the caller's counterparty has not reacted and that more
+than one week has passed since the dispute was raised. Then escalateDispute will record the total amount of STBL locked
+in escrow by the maker and taker minus service fees in the map of disputes, update the dispute state to ESCALATED, and
+transfer the service fees to the service fee pool. Additionally, escalateDispute will emit a DisputeEscalated event,
+specifying the ID of the escalated disputed swap, the address of the caller, and the reason for escalation.
+
+Then the escalated dispute is resolved with the following process:
 
 1) The maker and/or taker create a new governance proposal for disputed swap resolution, specifying the swap ID and the
 amount of STBL to be paid out to the maker and taker, and the amount (if any) of STBL to be confiscated and sent to the
