@@ -683,38 +683,6 @@ dispute is either resolved or escalated. In either case, the dispute agents are 
 listening for the emission of events related to the dispute. Additionally, all parties involved stop listening for
 messages related to the dispute.
 
-
-first dispute agent creates and stores key pair, announces public key with eth key signature, and creates and saves
-three symmetric keys: one to share with the dispute raiser and the other two dispute agents, one to share with the
-dispute-raiser's counterparty and the other two dispute agents, and one to share only with the other two dispute agents.
-Then the first dispute agent begins listening for public key announcements from the other two dispute agents and from
-the dispute raiser and from the dispute raiser's counterparty. non-dispute-raising counterparty comes online, checks
-for DisputeRaised event, realizes dispute has been raised, updates local swap object, and announces public key. then
-begins listening for public key announcements from dispute agents. Once the first dispute agent hears the dispute
-raiser's public key announcement, they store the dispute raiser's public key and encrypt the first symmetric key with
-the dispute raiser's public key and send it in the CIN Matrix room. Once the first dispute agent hears the dispute
-raiser's counterparty's public key announcement, they store the counterparty's public key and encrypt the second
-symmetric key with the counterparty's public key and send it in the CIN Matrix room. the other two dispute agents
-come online and listen for DisputeRaised events. Once they detect the dispute raiser's DisputeRaised event, they begin
-listening for the dispute raiser's public key announcement, the counterparty's public key announcement and the first
-dispute agent's public key announcement. They each generate and store a new key pair and announce their public key with
-eth key signature. They find and store each other's keys upon discovering them. dispute raiser discovers and verifies
-each dispute agent's public key announcement, saves keys locally, and then starts listening for symmetric key.
-non-dispute-raising counterparty discovers and verifies each dispute agent's public key announcement, saves keys
-locally, and then starts listening for symmetric key. dispute raiser discovers and verifies the symmetric key message,
-saves key locally, and then starts listening for messages and ResolutionProposed events. non-dispute-raising
-counterparty discovers and verifies symmetric key messages, saves key locally and then starts listening for messages
-and ResolutionProposed events. Once the first dispute agent hears the second and third dispute agents' public key
-announcements, the first dispute agent creates a message containing all three symmetric keys. Then they encrypt a copy
-of the message with the second dispute agent's public key and encrypt another copy of the message with the third dispute
-agent's public key. Then the first dispute agent signs the encrypted messages and sends them in the CIN Matrix room.
-Dispute agents two and three discover and verify all three symmetric key messages, save keys locally, and then start
-listening for messages and ResolutionProposed events.At this point, all three dispute agents have all three symmetric
-keys, the dispute raiser has the first symmetric key, and the counterparty has the second symmetric key. Using the
-first key, the dispute raiser can communicate privately with the dispute agents. Using the second key, the counterparty
-can communicate privately with the dispute agents. And using the third key, the dispute agents can communicate privately
-with each other. dispute agents stop listening for messages once the disputed swap is either escalated or closed (done)
-
 Commuto Interface Network Specification:
 //TODO: Eventually, each Interface should have its own Matrix homeserver built in, to regularly create "throwaway" accounts
 //TODO: Clarify interactions with KMService
