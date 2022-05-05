@@ -368,6 +368,7 @@ raiser's public key, and then they prepare the following two JSON strings:
 "recipient": [the dispute raiser's interface id as a Base64 string],
 "encryptedKey": null,
 "encryptedIV": null,
+"payload": null,
 "signature": null
 }
 and (the payload JSON string)
@@ -408,6 +409,7 @@ non-dispute-raising counterparty's public key, and then they prepare the followi
 "recipient": [the non-dispute-raising counterparty's interface id as a Base64 string]
 "encryptedKey": null,
 "encryptedIV": null,
+"payload": null,
 "signature": null
 }
 and (the payload JSON string)
@@ -500,8 +502,114 @@ the dispute raiser and non-dispute-raising counterparty obtain the public key of
 dispute agent's interface id with their local swap object and the Ethereum address of the dispute agent, and associate
 the public key with the interface id and store them locally. Then they begin listening for a message from the first
 dispute agent containing communication keys (that is, a message with the "sender" field equal to the interface id of the
-first dispute agent and the "msgtype" field in the payload equal to "MCKAnnouncement" in the case of the maker and
-"TCKAnnouncement" in the case of the taker).
+first dispute agent, the "recipient" field equal to their own interface id used for the swap, and the "msgtype" field in
+the payload equal to "MCKAnnouncement" in the case of the maker and "TCKAnnouncement" in the case of the taker).
+Once they have the first dispute agent's public key, the dispute raiser and non-dispute-raising counterparty both obtain
+the communication keys created and shared by the first dispute agent with the following process:
+When the maker/taker of the disputed swap finds a message in JSON string format with the "sender" field equal to the
+interface id of the first dispute agent selected for the disputed swap, they attempt to create an encrypted payload
+byte array from the Base64-encoded string in the message's "payload" field. If byte array creation fails, the
+maker/taker discards the message and continues listening for another valid message. If byte array creation succeeds, the
+maker/taker attempts to restore the signature byte array from the Base64-encoded string in the "signature" field. If
+byte array restoration fails, the maker/taker discards the message and continues listening for another valid message. If
+byte array restoration succeeds, the maker/taker retrieves the first dispute agent's public key, calculates the SHA-256
+hash of the encrypted payload byte array to obtain the signed data, and then attempts to verify the message's signature.
+If signature verification fails, the maker/taker discards the message and continues listening for another valid message.
+If signature verification succeeds, the maker/taker creates byte arrays from the Base64-encoded strings in the message's
+"encryptedKey" and "encryptedIV" fields. If byte array creation fails, the maker/taker discards the message and
+continues to listen for a valid message. If byte array creation succeeds, the maker/taker attempts to decrypt the
+encrypted key and initialization vector byte arrays using their private key. If decryption fails, the maker/taker
+discards the message and continues listening for a valid message. If decryption succeeds, the maker/taker creates a byte
+array from the Base64-encoded string in the message's "payload" field and attempts to decrypt it using the decrypted key
+and initialization vector. If byte array creation or payload decryption fails, the maker/taker discards the message and
+continues listening for a valid message. If byte array creation and decryption succeeds, the maker/taker attempts to
+restore the payload JSON from the decrypted byte array. If restoration fails, the maker/taker discards the message and
+continues to listen for a valid message. If restoration succeeds, the maker/taker ensures that the payload's "msgType"
+field equals "MCKAnnouncement" or "TCKAnnouncement" in the case of the maker and taker, respectively. If it does not,
+the maker/taker discards the message and continues listening for a valid message. If it does, the maker/taker creates a
+byte array from the Base64-encoded string in the payload's "swapId" field and compares it to the id of the disputed
+swap. If byte array creation fails or the two do not match, the maker/taker discards the message and continues to listen
+for a valid message. If the two do match, the maker/taker creates a symmetric key object from the Base64-encoded string
+in the payload's "key" field, associates it with their local swap object, and updates the status of their local swap
+object to indicate that they have received the communication key. Then they begin listening for the emission of
+ResolutionProposed events for their swap and for chat messages from the dispute agents (that is, messages with the
+"sender" field equal to the interface ids of any of the three dispute agents, and with the "recipient" field equal to
+the maker's/taker's interface id).
+Once the first dispute agent has received the public keys of the second and third dispute agent, the first dispute
+agent prepares the following two JSON strings:
+(the message JSON string)
+{
+"sender":[the first dispute agent's interface id]
+"recipient":[a list containing the interface ids of the second and third dispute agent]
+"encryptedKeyDA1": null,
+"encryptedIVDA1": null,
+"encryptedKeyDA2": null,
+"encryptedIVDA2": null,
+"payload": null,
+"signature": null
+}
+and (the payload JSON string)
+{
+"msgType":"fullCommunicationKeyAnnouncement",
+"swapId":[the id of the disputed swap in Base64-encoded string format]
+"MCK":[the Maker Communication Key as a Base64-encoded string]
+"TCK":[the Taker Communication Key as a Base64-encoded string]
+}
+The first dispute agent converts the payload JSON string into a UTF-8 byte array, generates a new 128 bit initialization
+vector, encrypts the byte array with the Dispute Agent Communication Key and new initialization vector, and sets the
+"payload" field in the message string equal to the Base64-encoded string representation of the encrypted byte array.
+Then the first dispute agent calculates the SHA-256 hash of the encrypted byte array, signs it with their private key,
+and sets the "signature" field in the message string equal to the Base64-encoded string representation of the signature.
+Then the first dispute agent encrypts the Dispute Agent Communication Key and initialization vector with the second
+dispute agent's public key, and sets the "encryptedKeyDA1" and "encryptedIVDA1" fields in the message string equal to
+the respective Base64-encoded string results. Then the first dispute agent encrypts the Dispute Agent Communication Key
+and initialization vector with the third dispute agent's public key, and sets the "encryptedKeyDA2" and "encryptedIVDA2"
+fields in the message string equal to the respective Base64-encoded string results. Then the first dispute agent sends
+the message string as a message in the CIN Matrix room, and updates the status of their local dispute object to indicate
+that they have sent the full communication key announcement to the other two dispute agents. Then the first dispute
+agent begins listening for the emission of ResolutionProposed events for the swap and for chat messages from the dispute
+agents, from the dispute raiser and from the non-dispute-raising counterparty (that is, messages with the "sender" field
+equal to the interface ids of any of the other two dispute agents, the dispute raiser, or the non-dispute-raising
+counterparty, and with the first dispute agent's interface id as an element of the list in the "recipient" field).
+Once they have the first dispute agent's public key, the second and third dispute agents obtain both communication keys
+created and shared by the first dispute agent with the following process:
+When the second/third dispute agent for the disputed swap finds a message in JSON string format with the "sender" field
+equal to the interface id of the first dispute agent selected for the disputed swap, they attempt to create an encryped
+payload byte array from the Base64-encoded string in the message's "payload" field. If byte array creation fails, the
+second/third dispute agent discards the message and continues listening for another valid message. If byte array
+creation succeeds, the second/third dispute agent attempts to restore the signature byte array from the Base64-encoded
+string in the message's "signature" field. If restoration fails, the second/third dispute agent discards the message and
+continues listening for another valid message. If restoration succeeds, the second/third dispute agent retrieves the
+first dispute agent's public key, calculates the SHA-256 hash of the encrypted payload byte array to obtain the signed
+data, and then attempts to verify the message's signature. If verification fails, the second/third dispute agent
+discards the message and continues listening for another valid message. If verification succeeds, the second/third
+dispute agent creates byte arrays from the Base64-encoded strings in the message's "encryptedKeyDA1"/"encryptedKeyDA2"
+and "encryptedIVDA1"/"encryptedIVDA2" fields. If byte array creation fails, the second/third dispute agent discards the
+message and continues to listen for a valid message. If byte array creation succeeds, the second/third dispute agent
+attempts to decrypt the encrypted key and initialization vector byte arrays using their private key. If decryption
+fails, the second/third dispute agent discards the message and continues listening for a valid message. If decryption
+succeeds, the second/third dispute agent creates a symmetric key object from the decrypted key data and creates a byte
+array from the Base64-encoded string in the message's "payload" field and attempts to decrypt it using the decrypted
+key and initialization vector. If byte array creation or decryption fails, the second/third dispute agent discards the
+message and continues listening for a valid message. If byte array creation or decryption succeeds, the second/third
+dispute agent attempts to restore payload JSON from the decrypted byte array. If restoration fails, the second/third
+dispute agent discards the message and continues listening for a valid message. If restoration succeeds, the
+second/third dispute agent ensures that the payload's "msgType" field equals "fullCommunicationKeyAnnouncement". If it
+does not, the second/third dispute agent discards the message and continues listening for a valid message. If it does,
+the second/third dispute agent creates a byte array from the Base64-encoded string in the payload's "swapId" field and
+compares it to the id of the disputed swap. If byte array creation fails or the two do not match, the second/third
+dispute agent discards the message and continues to listen for a valid message. If the two do match, the second/third
+dispute agent creates symmetric key objects from the Base64-encoded string in the payload's "MCK" and "TCK" fields,
+associates these two keys with their corresponding dispute object as the Maker Communication Key and Taker Communication
+Key, associates the decrypted key from the "encryptedKeyDA1"/"encryptedKeyDA2" field with the dispute object as the
+Dispute Agent Communication Key, and updates the status of their dispute object to indicate that they have received
+all three communication keys. Then they begin listening for the emission of ResolutionProposed events for the swap and
+for chat messages from the other dispute agents, from the dispute raiser and from the non-dispute-raising counterparty
+(that is, messages with the "sender" field equal to the interface ids of any of the other two dispute agents, the
+dispute raiser, or the non-dispute-raising counterparty, and with their interface id as an element of the list in the "
+recipient" field).
+At this point, each dispute agent has all three communication keys, the maker has the Maker Communication Key, the taker
+has the Taker Communication Key, and every party involved in the dispute has the public key of every other party.
 
 first dispute agent creates and stores key pair, announces public key with eth key signature, and creates and saves
 three symmetric keys: one to share with the dispute raiser and the other two dispute agents, one to share with the
@@ -517,29 +625,25 @@ symmetric key with the counterparty's public key and send it in the CIN Matrix r
 come online and listen for DisputeRaised events. Once they detect the dispute raiser's DisputeRaised event, they begin
 listening for the dispute raiser's public key announcement, the counterparty's public key announcement and the first
 dispute agent's public key announcement. They each generate and store a new key pair and announce their public key with
-eth key signature. They find and store each other's keys upon discovering them (done)
-
-dispute raiser discovers and verifies each dispute agent's public key announcement, saves keys locally, and then
-starts listening for symmetric key. non-dispute-raising counterparty discovers and verifies each dispute agent's public
-key announcement, saves keys locally, and then starts listening for symmetric key.
-
-Once the first dispute agent hears the second and third dispute agents' public key announcements, the first dispute
-agent creates a message containing all three symmetric keys. Then they encrypt a copy of the message with the second
-dispute agent's public key and encrypt another copy of the message with the third dispute agent's public key. Then the
-first dispute agent signs the encrypted messages and sends them in the CIN Matrix room.
-
-dispute raiser discovers and verifies
-the symmetric key message, saves key locally, and then starts listening for messages and ResolutionProposed events.
-non-dispute-raising counterparty discovers and verifies symmetric key messages, saves key locally, and then starts
-listening for messages and ResolutionProposed events.
-
+eth key signature. They find and store each other's keys upon discovering them. dispute raiser discovers and verifies
+each dispute agent's public key announcement, saves keys locally, and then starts listening for symmetric key.
+non-dispute-raising counterparty discovers and verifies each dispute agent's public key announcement, saves keys
+locally, and then starts listening for symmetric key. dispute raiser discovers and verifies the symmetric key message,
+saves key locally, and then starts listening for messages and ResolutionProposed events. non-dispute-raising
+counterparty discovers and verifies symmetric key messages, saves key locally and then starts listening for messages
+and ResolutionProposed events. Once the first dispute agent hears the second and third dispute agents' public key
+announcements, the first dispute agent creates a message containing all three symmetric keys. Then they encrypt a copy
+of the message with the second dispute agent's public key and encrypt another copy of the message with the third dispute
+agent's public key. Then the first dispute agent signs the encrypted messages and sends them in the CIN Matrix room.
 Dispute agents two and three discover and verify all three symmetric key messages, save keys locally, and then start
-listening for messages and ResolutionProposed events.
+listening for messages and ResolutionProposed events.At this point, all three dispute agents have all three symmetric
+keys, the dispute raiser has the first symmetric key, and the counterparty has the second symmetric key. (done)
 
-At this point, all three dispute agents have all three symmetric keys, the dispute raiser has the first symmetric key,
-and the counterparty has the second symmetric key. Using the first key, the dispute raiser can communicate privately
+Using the first key, the dispute raiser can communicate privately
 with the dispute agents. Using the second key, the counterparty can communicate privately with the dispute agents. And
 using the third key, the dispute agents can communicate privately with each other.
+
+dispute agents stop listening for messages once the disputed swap is either escalated or closed
 
 Commuto Interface Network Specification:
 //TODO: Eventually, each Interface should have its own Matrix homeserver built in, to regularly create "throwaway" accounts
