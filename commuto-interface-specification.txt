@@ -19,6 +19,7 @@ signature
 recipient
 
 Interface Interaction with Commuto Protocol:
+//TODO: EVM compatible STRUCT, not OBJECT
 //TODO: Don't discard message if "msgType" doesn't match, because it could be a chat message
 //TODO: Update spec with updated message handling logic
 //TODO: Update spec to reflect storage of local offer/swap before waiting for OpenOffer/TakeOffer event emission
@@ -267,32 +268,273 @@ The dispute raiser converts the payload JSON string to UTF-8 bytes, creates a Ba
 and sets the "payload" field in the first string equal to the result. Then the dispute raiser calculates the SHA-256
 hash of the JSON string's UTF-8 byte representation, signs it with their private key, and sets the "signature" field in
 the first string equal to the Base64-encoded string representation of the signature. Then the maker sends the first
-string as a message in the (CIN) Matrix room. When the message is successfully sent, the dispute raiser updates the
-dispute status of the local swap object to "sentDisputePka".
+string as a message in the CIN Matrix room. When the message is successfully sent, the dispute raiser updates the
+dispute status of the local swap object to "sentDisputePka". Then the dispute raiser begins listening for public key
+announcements from all three dispute agents (that is, messages with the "senderEthAddr" field equal to one of the
+Ethereum addresses of the three dispute agents as specified in the DisputeRaised event, with the "msgType" field equal
+to "disputeAgent0Pka", "disputeAgent1Pka" or "disputeAgent2Pka", according to the address specified in the message's
+"senderEthAddr" field, and the ["payload"]["swapId"] field equal to the id of the disputed swap, as specified in the
+DisputeRaised event).
 The first dispute agent (corresponding to the "disputeAgent0" field in the dispute raiser's call to raiseDispute) comes
 online and checks for the emission of DisputeRaised events specifying their address. When the first dispute agent
-discovers the DisputeRaised event corresponding to the
+discovers the new DisputeRaised event, they call the Commuto Protocol's getSwap function, passing the ID of the swap as
+specified in the DisputeRaised event. They then use the information in the returned EVM compatible Swap object to create
+and save a new local dispute object with all the information about the swap. Then they generate and store a new 2048-bit
+RSA key pair, associate this key pair's corresponding interface id with the local dispute object, and set the dispute
+object's status to "firstKeyPairGenerated". Then the first dispute agent creates the following two JSON strings:
+(the message JSON string)
+{
+"sender":[the interface id of the first dispute agent's newly generated key pair as a Base64 string],
+"senderEthAddr":[the first dispute agent's Ethereum address as specified in the DisputeRaised event],
+"msgType":"disputeAgent0Pka", (dispute -> this message is sent as part of the dispute resolution process, agent0 -> this
+message is being sent by the first dispute agent, pka -> public key announcement)
+"payload": null,
+"signature": null,
+"signatureEth": null
+}
+and (the payload JSON string)
+{
+"pubKey":[the public key of the first dispute agent's newly generated key pair, in string format]
+"swapId":[the id of the swap being disputed in Base64-encoded string format]
+}
+The first dispute agent converts the payload JSON string to UTF-8 bytes, creates a Base64-encoded string from those
+bytes, and sets the "payload" field in the first string equal to the result. Then the first dispute agent calculates the
+SHA-256 hash of the JSON string's UTF-8 byte representation, signs it with their private key, and sets the "signature"
+field in the first string equal to the Base64-encoded string representation of the signature. Then the first dispute
+agent signs the hash with the Ethereum private key corresponding to their Ethereum address, as specified in the
+DisputeRaised event and in the "senderEthAddr" field of the first string, and sets the "signatureEth" field in the first
+string equal to the Base64-encoded string representation of this second signature. Then the first dispute agent sends
+the first string as a message in the CIN Matrix room. When the message is successfully sent, the first dispute agent
+updates the status of the local dispute object to "sentDisputeAgent0Pka".
+Then the first dispute agent creates three AES-256 keys. The first key is known as the Maker Communication Key (MCK) and
+will be shared with the maker and the other two dispute agents. The second key is known as the Taker Communication Key
+(TCK) and will be shared with the taker and the other two dispute agents. The third key is known as the Dispute Agent
+Communication Key and will be shared with the other two dispute agents. Once the first dispute agent has created these
+keys, they associate them with the local dispute object and save them. Then they update the status of the local dispute
+object to "createdCommunicationKeys".
+Then the first dispute agent begins listening for public key announcements from the other two dispute agents (that is,
+messages with the "senderEthAddr" field equal to one of the Ethereum addresses of the other two dispute agents as
+specified in the DisputeRaised event, with the "msgType" field equal to "disputeAgent1Pka" or "disputeAgent2Pka",
+according to the address specified in the message's "senderEthAddr" field, and the ["payload"]["swapId"] field equal to
+the id of the disputed swap, as specified in the DisputeRaised event) and for the public key announcement from the
+dispute raiser (that is, a message with the "sender" field equal to the maker's interface id if the dispute raiser is
+the maker, or equal to the taker's interface id if the dispute raiser is the taker and with the "msgType" field equal to
+"disputeUserPka") and for the public key announcement from the dispute raiser's counterparty (that is, a message with
+the "sender" field equal to the maker's interface id if the dispute raiser is the taker, or equal to the taker's
+interface id if the dispute raiser is the maker and with the "msgType" field equal to "disputeUserPka").
+The dispute raiser's counterparty comes online and checks for the emission of a DisputeRaised event specifying the id of
+their swap. When they discover the DisputeRaised event, they update the dispute status of their local swap object to
+"counterpartyRaisedDispute" and prepare the following two JSON strings:
+(the message JSON string)
+{
+"sender":[the non-dispute-raising counterparty's interface id as a Base64 string]
+"msgType":"disputeUserPka",
+"payload": null,
+"signature": null
+}
+and (the payload JSON string)
+{
+"pubKey": [the same public key that the non-dispute-raising counterparty already created for the swap, in string format
+}
+The non-dispute-raising counterparty converts the payload JSON string to UTF-8 bytes, creates a Base64-encoded string
+from those bytes, and sets the "payload" field in the first string equal to the result. Then the dispute raiser
+calculates the SHA-256 hash of the JSON string's UTF-8 byte representation, signs it with their private key, and sets
+the "signature" field in the first string equal to the Base64-encoded string representation of the signature. Then the
+non-dispute-raising counterparty sends the first string as a message in the CIN Matrix room. When the message is
+successfully sent, the dispute raiser updates the dispute status of the local swap object to "sentDisputePka". Then the
+non-dispute-raising counterparty begins listening for public key announcements from the all three dispute agents (that
+is, messages with the "senderEthAddr" field equal to one of the Ethereum addresses of the three dispute agents as
+specified in the DisputeRaised event, with the "msgType" field equal to "disputeAgent0Pka", "disputeAgent1Pka" or
+"disputeAgent2Pka", according to the address specified in the message's "senderEthAddr" field, and the
+["payload"]["swapId"] field equal to the id of the disputed swap, as specified in the DisputeRaised event).
+When the first dispute agent finds a message in JSON string format with the "msgType" field equal to "disputeUserPka"
+and the "sender" field equal to the interface id of the dispute raiser, they create a byte array from the Base64-encoded
+string in the message's "payload" field and attempt to restore the payload JSON from the byte array. If restoration
+fails, the first dispute agent discards the message and continues to listen for a valid message. If restoration
+succeeds, the first dispute agent creates a public key from the Base64-encoded string in the payload's "pubKey" field,
+creates a byte array from the Base64-encoded string in the message's "sender" field, and compares the interface id of
+the public key to the byte array. If the two do not match, the first dispute agent discards the message and continues to
+listen for a valid message. If the two do match, the first dispute agent restores the signature byte array from the
+Base64-encoded string in the "signature" field and attempts to verify the signature using this byte array, the restored
+public key, and the SHA-256 hash of the payload byte array. If signature verification fails, the first dispute agent
+discards the message and continues to listen for a valid message. If signature verification succeeds, the first dispute
+agent has confirmed that the key contained in the message is the dispute raiser's public key, and so the first dispute
+agent associates the dispute raiser's public key with the dispute raiser's interface id and stores them locally. The
+first dispute agent updates the status of their local dispute object to indicate that they have received the dispute
+raiser's public key, and then they prepare the following two JSON strings:
+(the message JSON string)
+{
+"sender": [the first dispute agent's interface id as a Base64 string],
+"recipient": [the dispute raiser's interface id as a Base64 string],
+"encryptedKey": null,
+"encryptedIV": null,
+"signature": null
+}
+and (the payload JSON string)
+{
+"msgType": "MCKAnnouncement" if the dispute raiser is the maker, or "TCKAnnouncement" if the dispute raiser is the taker
+"swapId": [the id of the disputed swap in Base64-encoded string format]
+"key": [the Maker Communication Key or Taker Communication Key, depending on whether the dispute raiser is the maker or
+taker, as a Base64-encoded string]
+}
+The first dispute agent converts the payload JSON string into a UTF-8 byte array, generates a new AES-256 key and 128
+bit initialization vector, encrypts the byte array with the new key and initialization vector, and sets the "payload"
+field in the message string equal to the Base64-encoded string representation of the encrypted byte array. Then the
+first dispute agent calculates the SHA-256 hash of the encrypted byte array, signs it with their private key, and sets
+the "signature" field in the message string equal to the Base64-encoded string representation of the signature. Then the
+first dispute agent encrypts the AES-256 key and initialization vector using the dispute raiser's public key, and sets
+the "encryptedKey" and "encryptedIV" fields in the message string equal to the respective Base64-encoded string results.
+Then the first dispute agent sends the message string as a message in the CIN Matrix room, and updates the status of
+their local dispute object to indicate that that they have sent the proper communication key to the dispute raiser.
+When the first dispute agent finds a message in JSON string format with the "msgType" field equal to "disputeUserPka"
+and the "sender" field equal to the interface id of the non-dispute-raising counterparty, they create a byte array from
+the Base64-encoded string in the message's "payload" field and attempt to restore the payload JSON from the byte array.
+If restoration succeeds, the first dispute agent creates a public key from the Base64-encoded string in the payload's
+"pubKey" field, creates a byte array from the Base64-encoded string in the message's "sender" field, and compares the
+interface id of the public key to the byte array. If the two do not match, the first dispute agent discards the message
+and continues to listen for a valid message. If the two do match, the first dispute agent restores the signature byte
+array from the Base64-encoded string in the "signature" field and attempts to verify the signature using this byte
+array, the restored public key, and the SHA-256 hash of the payload byte array. If signature verification fails, the
+first dispute agent discards the message and continues to listen for a valid message. If signature verification
+fails, the first dispute agent discards the message and continues to listen for a valid message. If signature
+verification succeeds, the first dispute agent has confirmed that the key contained in the message is the
+non-dispute-raising counterparty's public key, and so the first dispute agent associates the non-dispute-raising
+counterparty's public key with the non-dispute-raising counterparty's interface id and stores them locally. The first
+dispute agent updates the status of their local dispute object to indicate that they have received the
+non-dispute-raising counterparty's public key, and then they prepare the following two JSON strings:
+(the message JSON string)
+{
+"sender": [the first dispute agent's interface id as a Base64 string],
+"recipient": [the non-dispute-raising counterparty's interface id as a Base64 string]
+"encryptedKey": null,
+"encryptedIV": null,
+"signature": null
+}
+and (the payload JSON string)
+{
+"msgType": "MCKAnnouncement" if the non-dispute-raising counterparty is the maker, or "TCKAnnouncement" if the
+non-dispute-raising counterparty is the taker
+"swapId": [the id of the disputed swap in Base64-encoded string format]
+"key": [the Maker Communication Key or Taker Communication Key, depending on whether the non-dispute-raising
+counterparty is the maker or taker, as a Base64-encoded string]
+}
+The first dispute agent converts the payload JSON string into a UTF-8 byte array, generates a new AES-256 key and 128
+bit initialization vector, encrypts the byte array with the new key and initialization vector, and sets the "payload"
+field in the message string equal to the Base64-encoded string representation of the encrypted byte array. Then the
+first dispute agent calculates the SHA-256 hash of the encrypted byte array, signs it with their private key, and sets
+the "signature" field in the message string equal to the Base64-encoded string representation of the signature. Then the
+first dispute agent encrypts the AES-256 key and initialization vector using the non-dispute-raising counterparty's
+public key, and sets the "encryptedKey" and "encryptedIV" fields in the message string equal to the respective
+Base64-encoded string results. Then the first dispute agent sends the message string as a message in the CIN Matrix
+room, and updates the status of their local dispute object to indicate that they have sent the proper communication key
+to the non-dispute-raising counterparty.
+The second and third dispute agents (corresponding to the "disputeAgent1" and "disputeAgent2" fields in the dispute
+raiser's call to raiseDispute) come online and check for the emission of DisputeRaised events specifying their
+addresses. When they discover the new DisputeRaised event, they call the Commuto Protocol's getSwap function, passing
+the ID of the swap as specified in the DisputeRaised event. They then use the information in the returned EVM compatible
+Swap struct to create and save a new local dispute object with all the information about the swap. The two dispute
+agents then each generate and store a new 2048-bit RSA key pair, associate the key pair's corresponding interface id
+with their local dispute object, and set their dispute object's status to "keyPairGenerated". Then they each create the
+following two JSON strings:
+(the message JSON string)
+{
+"sender":[the interface id of the dispute agent's newly generated key pair as a Base64 string],
+"senderEthAddr":[the dispute agent's Ethereum address as specified in the DisputeRaised event],
+"msgType":"disputeAgent1Pka" if the sender is the second dispute agent specified in the DisputeRaised event, or
+"disputeAgent2Pka" if the sender is the third dispute agent specified in the DisputeRaised event
+"payload": null,
+"signature": null,
+"signatureEth": null
+}
+and (the payload JSON string)
+{
+"pubKey":[the public key of the dispute agent's newly generated key pair, in string format]
+"swapId":[the id of the swap being disputed in Base64-encoded string format]
+}
+Each of two dispute agents converts their payload JSON string into UTF-8 bytes, creates a Base64-encoded string from
+those bytes, and sets the "payload" field in the first string equal to the result. Then they each calculate the SHA-256
+hash of the JSON string's UTF-8 byte representation, sign it with their private key, and set the "signature" field in
+the first string equal to the Base64-encoded string representation of the signature. Then they each sign their hash with
+their Ethereum private key corresponding to their Ethereum address, as specified in the DisputeRaised event and in the
+"senderEthAddr" field of the first string, and set the "signatureEth" field in the first string equal to the
+Base64-encoded string representation of this second signature. Then both of the two dispute agents send the first string
+as a message in the CIN Matrix room. When their message is successfully sent, the second and third dispute agents each
+update the status of their local dispute objects to "sentDisputeAgent1Pka" and "sentDisputeAgent2Pka", respectively.
+Then the second and third dispute agents begin listening for public key announcements from each other and from the first
+dispute agent (that is, messages with the "senderEthAddr" field equal to one of the Ethereum addresses of the other two
+dispute agents as specified in the DisputeRaised event, with the "msgType" field equal to "disputeAgent0Pka" or
+"disputeAgent1Pka" or "disputeAgent2Pka", according to the address specified in the message's "senderEthAddr" field, and
+the ["payload"]["swapId"] field equal to the id of the disputed swap, as specified in the DisputeRaised event) and from
+the dispute raiser and from the non-dispute-raising counterparty.
+Dispute agents two and three obtain, verify and store the public keys of the dispute raiser and the non-dispute-raising
+counterparty in the same way that the first dispute agent obtains these keys. Just as the first dispute agent does, they
+each update the status of their local dispute object to indicate that they have received the public keys of the dispute
+raiser and non-dispute-raising counterparty.
+Each of the three dispute agents obtains the public keys of the other two dispute agents with the following process:
+When a dispute agent finds a message in JSON string format with the "msgType" field equal to "disputeAgent0Pka" or
+"disputeAgent1Pka" or "disputeAgent2Pka" (depending on the role of the dispute agent), the "senderEthAddr" field
+equal to the Ethereum address of the dispute agents as specified in the DisputeRaised event and the message's "msgType"
+field and the ["payload"]["swapId"] field equal to the id of the disputed swap, they create a byte array from the
+Base64-encoded string in the message's "payload" field and attempt to restore the payload JSON from the byte array. If
+restoration fails, the dispute dispute agent discards the message and continues to listen for a valid message. If
+restoration succeeds, the first dispute agent restores the signature byte array from the Base64-encoded string in the
+"signatureEth" field and attempts to verify the signature using this byte array, the Ethereum address in the
+"senderEthAddr" field, and the SHA-256 hash of the payload byte array. If this signature verification fails, the dispute
+agent discards the message and continues to listen for a valid message. If signature verification succeeds, the dispute
+agent creates a public key from the Base64-encoded string in the payload's "pubKey" field, creates a byte array from the
+Base64-encoded string in the message's "sender" field, and compares the interface id of the public key to the byte
+array. If the two do not match, the dispute agent discards the message and continues to listen for a valid message. If
+the two do match, the dispute agent restores the signature byte array from the Base64-encoded string in the "signature"
+field and attempts to verify the signature using this byte array, the restored public key, and the SHA-256 hash of the
+payload byte array. If signature verification fails, the dispute agent discards the message and continues to listen for
+a valid message. If signature verification succeeds, the dispute agent has confirmed that the key contained in the
+message is the public key of another dispute agent involved in resolving the disputed swap, and so the dispute agent
+associates this interface id as that of the proper dispute agent involved with a certain dispute, updates their proper
+local dispute object accordingly to indicate that they have received the public key of another dispute agent, and
+associates the public key with the interface id and stores them locally. The second and third dispute agents begin
+listening for a message from the first dispute agent containing communication keys (that is, a message with the "sender"
+field equal to the interface id of the first dispute agent and the "msgtype" field in the payload equal to
+"fullCommunicationKeyAnnouncement"). The dispute raiser and non-dispute-raising counterparty obtain and verify the
+public keys of each dispute agent in exactly the same manner as the dispute agents obtain each others' public keys. When
+the dispute raiser and non-dispute-raising counterparty obtain the public key of a dispute agent, they associate the
+dispute agent's interface id with their local swap object and the Ethereum address of the dispute agent, and associate
+the public key with the interface id and store them locally. Then they begin listening for a message from the first
+dispute agent containing communication keys (that is, a message with the "sender" field equal to the interface id of the
+first dispute agent and the "msgtype" field in the payload equal to "MCKAnnouncement" in the case of the maker and
+"TCKAnnouncement" in the case of the taker).
 
 first dispute agent creates and stores key pair, announces public key with eth key signature, and creates and saves
 three symmetric keys: one to share with the dispute raiser and the other two dispute agents, one to share with the
 dispute-raiser's counterparty and the other two dispute agents, and one to share only with the other two dispute agents.
 Then the first dispute agent begins listening for public key announcements from the other two dispute agents and from
-the dispute raiser and from the dispute raiser's counterparty. Once the first dispute agent hears the dispute raiser's
-public key announcement, they store the dispute raiser's public key and encrypt the first symmetric key with the dispute
-raiser's public key and send it in the CIN Matrix room. Once the first dispute agent hears the dispute raiser's
-counterparty's public key announcement, they store the counterparty's public key and encrypt the second symmetric key
-with the counterparty's public key and send it in the CIN Matrix room.
+the dispute raiser and from the dispute raiser's counterparty. non-dispute-raising counterparty comes online, checks
+for DisputeRaised event, realizes dispute has been raised, updates local swap object, and announces public key. then
+begins listening for public key announcements from dispute agents. Once the first dispute agent hears the dispute
+raiser's public key announcement, they store the dispute raiser's public key and encrypt the first symmetric key with
+the dispute raiser's public key and send it in the CIN Matrix room. Once the first dispute agent hears the dispute
+raiser's counterparty's public key announcement, they store the counterparty's public key and encrypt the second
+symmetric key with the counterparty's public key and send it in the CIN Matrix room. the other two dispute agents
+come online and listen for DisputeRaised events. Once they detect the dispute raiser's DisputeRaised event, they begin
+listening for the dispute raiser's public key announcement, the counterparty's public key announcement and the first
+dispute agent's public key announcement. They each generate and store a new key pair and announce their public key with
+eth key signature. They find and store each other's keys upon discovering them (done)
 
-the other two dispute agents come online and listen for DisputeRaised events. Once they detect the dispute raiser's
-DisputeRaised event, they begin listening for the dispute raiser's public key announcement, the counterparty's public
-key announcement and the first dispute agent's public key announcement. They find and store each key upon discovering
-it. Once they detect the first dispute agent's public key announcement, they each generate and store a new key pair and
-announce their public key with eth key signature.
+dispute raiser discovers and verifies each dispute agent's public key announcement, saves keys locally, and then
+starts listening for symmetric key. non-dispute-raising counterparty discovers and verifies each dispute agent's public
+key announcement, saves keys locally, and then starts listening for symmetric key.
 
 Once the first dispute agent hears the second and third dispute agents' public key announcements, the first dispute
 agent creates a message containing all three symmetric keys. Then they encrypt a copy of the message with the second
 dispute agent's public key and encrypt another copy of the message with the third dispute agent's public key. Then the
 first dispute agent signs the encrypted messages and sends them in the CIN Matrix room.
+
+dispute raiser discovers and verifies
+the symmetric key message, saves key locally, and then starts listening for messages and ResolutionProposed events.
+non-dispute-raising counterparty discovers and verifies symmetric key messages, saves key locally, and then starts
+listening for messages and ResolutionProposed events.
+
+Dispute agents two and three discover and verify all three symmetric key messages, save keys locally, and then start
+listening for messages and ResolutionProposed events.
 
 At this point, all three dispute agents have all three symmetric keys, the dispute raiser has the first symmetric key,
 and the counterparty has the second symmetric key. Using the first key, the dispute raiser can communicate privately
