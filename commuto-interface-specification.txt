@@ -574,7 +574,7 @@ counterparty, and with the first dispute agent's interface id as an element of t
 Once they have the first dispute agent's public key, the second and third dispute agents obtain both communication keys
 created and shared by the first dispute agent with the following process:
 When the second/third dispute agent for the disputed swap finds a message in JSON string format with the "sender" field
-equal to the interface id of the first dispute agent selected for the disputed swap, they attempt to create an encryped
+equal to the interface id of the first dispute agent selected for the disputed swap, they attempt to create an encrypted
 payload byte array from the Base64-encoded string in the message's "payload" field. If byte array creation fails, the
 second/third dispute agent discards the message and continues listening for another valid message. If byte array
 creation succeeds, the second/third dispute agent attempts to restore the signature byte array from the Base64-encoded
@@ -610,6 +610,79 @@ dispute raiser, or the non-dispute-raising counterparty, and with their interfac
 recipient" field).
 At this point, each dispute agent has all three communication keys, the maker has the Maker Communication Key, the taker
 has the Taker Communication Key, and every party involved in the dispute has the public key of every other party.
+Using the Maker Communication Key, the maker and the three dispute agents can privately communicate with each other,
+such that all messages sent by any one of them are visible to all four. The taker and all three dispute agents can
+communicate in the same way using the Taker Communication Key, and the dispute agents can communicate with each other in
+the same way using the Dispute Agent Communication Key. They prepare and send messages with the following process:
+The message sender prepares two JSON strings:
+(the message JSON string)
+{
+"sender": [the interface id of the message sender, which is either the dispute raiser, the non-dispute-raising
+counterparty, or one of the three dispute agents]
+"recipient":[a list of the interface ids of the message recipients. If the sender is the maker or one of the dispute
+agents trying to communicate with the maker, this list will contain the maker's interface id and the interface ids of
+the three dispute agents, minus the interface id of the sender. If the sender is the taker or one of the three dispute
+agents trying to communicate with the taker, this list will contain the the taker's interface id and the interface ids
+of the three dispute agents, minus the interface id of the sender. If the sender is one of the three dispute agents
+trying to communicate only with the other two dispute agents, this list will contain the two interface ids of the
+dispute agents that are not the sender]
+"encryptedIVDA0":[this field will be present when the sender is not the first dispute agent]
+"encryptedIVDA1":[this field will be present when the sender is not the second dispute agent]
+"encryptedIVDA2":[this field will be present when the sender is not the third dispute agent]
+"encryptedIVMkr":[this field will be present when the sender is a dispute agent and is trying to communicate with the
+maker and the other two dispute agents]
+"encryptedIVTkr":[this field will be present when the sender is a dispute agent and is trying to communicate with the
+taker and the other two dispute agents]
+"payload": null,
+"signature": null
+}
+and (the payload JSON string)
+{
+"msgType":"disputeChatText",
+"swapId":[the id of the disputed swap in Base64-encoded string format]
+"content":[the text of the chat message as a string]
+}
+The sender converts the payload JSON string into a UTF-8 byte array, generates a new 128 bit initialization vector,
+encrypts the byte array with the proper communication key (the Maker Communication Key if the sender is the maker or a
+dispute agent attempting to communicate with the maker, the Taker Communication Key if the sender is the taker or a
+dispute agent attempting to communicate with the taker, or the Dispute Agent Communication Key if the sender is one of
+the dispute agents attempting to communicate with the other two dispute agents) and sets the "payload" field in the
+message string equal to the Base64-encoded string representation of the encrypted byte array. Then the sender calculates
+the SHA-256 hash of the encrypted byte array, signs it with their private key, and sets the "signature" field in the
+message string equal to the Base64-encoded string representation of the signature. Then the sender encrypts the
+initialization vector with the public key of each recipient, and sets all the "encryptedIV..." fields in the message
+string equal to the proper Base64-encoded string results. Then the sender sends the message string as a message in the
+CIN Matrix room.
+When a message recipient finds a message in JSON string format with their interface id in the list of interface ids in
+the "recipient" field and the "sender" field equal to the interface id of one of the parties involved in the resolution
+of their dispute, they attempt to create an encrypted payload byte array from the Base64-encoded string in the message's
+"payload" field. If byte array creation fails, the recipient discards the message. If byte array creation succeeds, the
+recipient attempts to restore the signature byte array from the Base64-encoded string in the message's "signature"
+field. If restoration fails, the recipient discards the message. If restoration succeeds, the recipient retrieves the
+public key of the sender, calculates the SHA-256 hash of the encrypted payload byte array to obtain the signed data,
+and then attempts to verify the message's signature. If verification fails, the recipient discards the message. If
+verification succeeds, the recipient creates a byte array from the encrypted initialization vector in the proper
+"encryptedIV..." field ("encryptedIVMkr" if the recipient is the maker, "encryptedIVTkr" if the recipient is the taker,
+or one of the "encryptedIVDA..." fields if the recipient is a dispute agent). If byte array creation fails, the
+recipient discards the message. If byte array creation succeeds, the recipient attempts to decrypt the encrypted
+initialization vector using their private key. If decryption fails, the recipient discards the message. If decryption
+succeeds, the recipient creates a byte array from the Base64-encoded data in the message's "payload" field and attempts
+to decrypt it using the decrypted initialization vector and the proper communication key (the Maker Communication Key
+if one of the interface ids in the "recipient" list is the maker, the Taker Communication Key if one of the interface
+ids in the "recipient" list is the taker, or the Dispute Agent Communication Key otherwise). If byte array creation or
+decryption fails, the recipient discards the message. If byte array creation or decryption succeeds, the recipient
+attempts to restore payload JSON from the decrypted byte array. If restoration fails, the recipient discards the
+message. If restoration succeeds, the recipient checks that the payload's "msgType" field equals "disputeChatText". If
+it does, the recipient discards the message. If it does, the recipient creates a byte array from the Base64-encoded
+string in the payload's "swapId" field and compares it to the id of the disputed swap. If the two do not match, the
+recipient discards the message. If the two do match, the recipient stores the value in the payload's "content" field
+as a new chat message.
+Once the parties involved in the resolution of the dispute detect the emission of two ResolutionProposed events, the
+begin to listen for DisputeEscalated or DisputedSwapClosed events. Once one of these events has been emitted, the
+dispute is either resolved or escalated. In either case, the dispute agents are no longer required and thus they stop
+listening for the emission of events related to the dispute. Additionally, all parties involved stop listening for
+messages related to the dispute.
+
 
 first dispute agent creates and stores key pair, announces public key with eth key signature, and creates and saves
 three symmetric keys: one to share with the dispute raiser and the other two dispute agents, one to share with the
@@ -637,13 +710,10 @@ of the message with the second dispute agent's public key and encrypt another co
 agent's public key. Then the first dispute agent signs the encrypted messages and sends them in the CIN Matrix room.
 Dispute agents two and three discover and verify all three symmetric key messages, save keys locally, and then start
 listening for messages and ResolutionProposed events.At this point, all three dispute agents have all three symmetric
-keys, the dispute raiser has the first symmetric key, and the counterparty has the second symmetric key. (done)
-
-Using the first key, the dispute raiser can communicate privately
-with the dispute agents. Using the second key, the counterparty can communicate privately with the dispute agents. And
-using the third key, the dispute agents can communicate privately with each other.
-
-dispute agents stop listening for messages once the disputed swap is either escalated or closed
+keys, the dispute raiser has the first symmetric key, and the counterparty has the second symmetric key. Using the
+first key, the dispute raiser can communicate privately with the dispute agents. Using the second key, the counterparty
+can communicate privately with the dispute agents. And using the third key, the dispute agents can communicate privately
+with each other. dispute agents stop listening for messages once the disputed swap is either escalated or closed (done)
 
 Commuto Interface Network Specification:
 //TODO: Eventually, each Interface should have its own Matrix homeserver built in, to regularly create "throwaway" accounts
