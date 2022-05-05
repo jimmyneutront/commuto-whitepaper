@@ -19,7 +19,6 @@ signature
 recipient
 
 Interface Interaction with Commuto Protocol:
-//TODO: EVM compatible STRUCT, not OBJECT
 //TODO: Don't discard message if "msgType" doesn't match, because it could be a chat message
 //TODO: Update spec with updated message handling logic
 //TODO: Update spec to reflect storage of local offer/swap before waiting for OpenOffer/TakeOffer event emission
@@ -32,7 +31,7 @@ described in the whitepaper in order to execute swaps. The symbols FIAT and STBL
 The following is depicted in the Business Process Model Notation diagrams found in this repo.
 Phase 1:
 The taker begins listening to the blockchain for the emission of OfferOpened events.
-The maker generates a new 2048-bit RSA key pair and a new UUID. The maker prepares an EVM compatible Offer object to be
+The maker generates a new 2048-bit RSA key pair and a new UUID. The maker prepares an EVM compatible Offer struct to be
 passed to the Commuto Protocol's newOffer function. The maker sets the Offer object's interfaceId property to the
 SHA-256 hash of the public key in byte format of the newly generated key pair. The maker specifies the offer's price in
 UTF-8 byte format and sets the Offer object's price property equal to the result. The maker specifies the settlement
@@ -42,10 +41,10 @@ The maker creates a JSON string containing their payment details with the follow
 "paymentDetails":[details about maker's particular fiat payment accounts to be used, like a cashtag or bank account
 information. The maker supplies one set of payment details for each supported payment method.]
 }
-The maker calls the Commuto Protocol's newOffer function, passing the UUID and EVM compatible Offer object and locking
+The maker calls the Commuto Protocol's newOffer function, passing the UUID and EVM compatible Offer struct and locking
 the security deposit and maximum service fee in escrow. The maker begins listening to the blockchain for the emission of
 the OfferOpened event corresponding to their newly opened offer. The maker creates a local offer object with all the
-information specified in their EVM compatible Offer object as well as the payment details string, sets the offer
+information specified in their EVM compatible Offer struct as well as the payment details string, sets the offer
 object's status property to "newOfferTxPublished" and stores this object locally. When the maker detects the emission of
 the OfferOpened event corresponding to their newly opened offer, they set the offer object's status to
 "awaitingPKAnnouncement" and create the following two JSON strings:
@@ -88,7 +87,7 @@ verification succeeds, the taker has confirmed that the key contained in the mes
 the taker associates the maker's public key with the maker's interface id and stores them locally.
 The taker calls the Commuto Protocol's getOffer function and passes the offer id specified in the public key
 announcement message, to get the terms of the offer. The taker decides to take the offer and prepares an EVM compatible
-Swap object corresponding to the previously obtained Solidity Offer object, generating and storing a new 2048-bit RSA
+Swap struct corresponding to the previously obtained Solidity Offer object, generating and storing a new 2048-bit RSA
 key pair and deriving the key pair's corresponding interface id, the SHA-256 hash of the new public key in byte format.
 The taker prepares a JSON string containing their payment details with the following structure:
 {
@@ -96,11 +95,11 @@ The taker prepares a JSON string containing their payment details with the follo
 information, which correspond to the payment method that the taker has specified in their Swap object]
 }
 The taker calls the Commuto Protocol's takeOffer function, passing the UUID of the offer to be taken and the EVM
-compatible Swap object and locking the required amount of STBL in escrow. If the taker is the buyer, this locks the
+compatible Swap struct and locking the required amount of STBL in escrow. If the taker is the buyer, this locks the
 taker's security deposit and service fee in escrow; if the taker is the seller, this locks the taker's security deposit,
 service fee and the swap amount in escrow. The taker begins listening to the blockchain for the emission of the
 OfferTaken event corresponding to the newly taken swap. The taker creates a swap object with all the information
-specified in their EVM compatible Swap object as well as the payment details string, sets the swap object's status
+specified in their EVM compatible Swap struct as well as the payment details string, sets the swap object's status
 property to "takeOfferTxPublished" and stores this object locally. When the taker detects the emission of the OfferTaken
 event corresponding to the new swap, they set the swap object's status to "awaitingTakerInfoAnnouncement" and create the
 following two JSON strings:
@@ -278,7 +277,7 @@ DisputeRaised event).
 The first dispute agent (corresponding to the "disputeAgent0" field in the dispute raiser's call to raiseDispute) comes
 online and checks for the emission of DisputeRaised events specifying their address. When the first dispute agent
 discovers the new DisputeRaised event, they call the Commuto Protocol's getSwap function, passing the ID of the swap as
-specified in the DisputeRaised event. They then use the information in the returned EVM compatible Swap object to create
+specified in the DisputeRaised event. They then use the information in the returned EVM compatible Swap struct to create
 and save a new local dispute object with all the information about the swap. Then they generate and store a new 2048-bit
 RSA key pair, associate this key pair's corresponding interface id with the local dispute object, and set the dispute
 object's status to "firstKeyPairGenerated". Then the first dispute agent creates the following two JSON strings:
