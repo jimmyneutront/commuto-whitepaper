@@ -195,96 +195,39 @@ of all open offers, remove the records of that offer's accepted settlement metho
 specifying the offer id, prompting other users to remove it from their offer books.
 
 Governance and Revenue Distribution:
-The Commuto Protocol has a governance token, referred to henceforth as CMTO, that is also used for revenue distribution.
+The Commuto Protocol uses OpenZepplin's system of modular Governor contracts for on-chain governance. The Commuto
+Protocol's Token, the Commuto Token (with symbol "CMTO") is used to determine voting power and for revenue distribution.
 At the end of every week, accumulated service fees are distributed to CMTO holders, according to the percentage of all
-issued CMTO tokens that they hold. CMTO token holders can also vote on the following issues/proposals:
+issued CMTO tokens that they hold.
+The Commuto Protocol's on-chain governance consists of four contracts: the Primary Governor and its TimelockController,
+and the Dispute Resolution Governor and its TimelockController. The latter pair are used by Commuto Protocol users
+to propose resolutions for disputed swaps that have been escalated for resolution by CMTO holders, via a call by the
+Dispute Resolution TimelockController to CommutoSwap's closeEscalatedSwap function. The Dispute Resolution Governor
+has a quorum requirement of 1% (meaning that at least 1% of the total supply of CMTO tokens at the time of proposal
+creation must be used to cast votes, not necessarily in favor of the proposal, in order for the proposal to pass) and
+no proposal threshold, because the Dispute Resolution Governor is only used to resolve disputes, meaning all proposals
+will be created by Commuto Protocol users who likely do not hold Commuto Tokens. The Primary Governor and its
+TimelockController are used for all other governance-related activities, including but not limited to the following
+types of issues/proposals:
 The issuance of additional CMTO tokens
-Additional miscellaneous expenses, to be deducted from the week's accumulated service fees before the remaining fees are
-distributed to token holders
+Additional miscellaneous expenses, to be paid via service fee revenue
 Addition or removal of support for specific settlement methods
 Addition or removal of support for specific stablecoins
 Addition or removal of dispute agents
 Compensation of dispute agents (dispute agents and their roles in the dispute process are described below)
-Resolution of disputes raised by users and unresolved by dispute agents
 Changes to the service fee rate
-CMTO token holders' votes are weighted by the percentage of all issued CMTO tokens that they own.
-Issuance of new CMTO tokens, miscellaneous expenses, removal of support for a specific settlement method, addition or
-removal of support for a specific stablecoin, addition/removal of dispute agents and changes to the service fee rate
-must receive approval from the holders of 50% + 1 of all issued tokens. Addition of support for a specific settlement
-method, compensation of dispute agents and resolution of disputes raised by users may only be approved if holders of at
-least 50% of all issued tokens have voted, and if 50% + 1 of all votes cast are in favor. Issues must be approved within
-one week of being proposed; otherwise they are defeated.
+The Primary Governor has a quorum requirement of 40% and a proposal threshold of 1%. Both Governors have a one day delay
+between the beginning of a proposal's voting period and the time at which the proposal is first created, and all
+proposals have a one week voting period. If a proposal is not approved within one week of its creation, it is defeated.
 
-When new proposals are added to maps, an event will be emitted indicating the map to which the proposal was added and
-the key of the new map entry.
-
-A user can propose issuance of additional CMTO tokens by calling the corresponding Commuto Protocol smart contract
-function and passing a UUID to uniquely identify the proposal, the amount of tokens to be issued, the address to which
-the tokens should be sent, and a hash of a string describing why additional CMTO tokens should be issued. This will add
-the new issuance request to a map of all currently open issuance requests. The user will then broadcast this data, along
-with the description string in its entirety, across the peer-to-peer network. If the issuance request is approved, the
-user can call the corresponding Commuto Protocol smart contract function, which will issue the amount of CMTO specified
-in the request to the address specified in the request.
-
-A user can propose an additional miscellaneous expense by calling the corresponding Commuto Protocol smart contract
-function and passing a UUID to uniquely identify the proposal, the amount of STBL to be issued, the address to which the
-STBL should be sent, and a hash of a string describing why this expense is necessary. This will add a new miscellaneous
-expense proposal to a map of all currently open miscellaneous expense proposals. The user will then broadcast this data,
-along with the description string in its entirety, across the peer-to-peer network. If the miscellaneous expense request
-is approved, the user can call the corresponding Commuto Protocol smart contract function, which will send the amount of
-STBL specified in the proposal from the pool of accumulated service fees to the address specified in the proposal
-
-A settlement method is a piece of information that describes the FIAT denomination that will be paid in exchange for
-STBL and the method by which that FIAT will be transferred. A user can propose the addition or removal of support for a
-specific settlement method by calling corresponding Commuto Protocol smart contract function and passing a UUID to
-uniquely identify the proposal, the name of the of the settlement method (in the format "SYM-PMName" where SYM is the
-symbol of the settlement method's FIAT and PMName is the name of the settlement method's payment method) in its UTF-8
-byte representation, an indication of whether support should be added or removed, and a hash of a string describing why
-support for this settlement method should be added or removed. This will add a new settlement method support proposal to
-a map of all currently open settlement method support proposals. The user will then broadcast this data, along with the
-description string in its entirety, across the peer-to-peer network. If the settlement method support proposal is
-approved, the user can call the corresponding Commuto Protocol smart contract function, which will implement the change
-specified in the proposal in the map and array of supported settlement methods in the Commuto Protocol.
-
-A user can propose the addition or removal of support for a specific stablecoin by calling the corresponding Commuto
-Protocol smart contract function and passing a UUID to uniquely identify the proposal, the address of the contract of
-the stablecoin in question, an indication of whether support should be added or removed, and a hash of a string
-describing why support for this fiat currency should be added or removed. This will add a new stablecoin support
-proposal to a map of all currently open stablecoin support proposals. The user will then broadcast this data, along with
-the description string in its entirety, across the peer-to-peer network. If the settlement method support proposal is
-approved, the user can call the corresponding Commuto Protocol smart contract function, which will implement the change
-specified in the proposal in the map and array of supported stablecoins in the Commuto Protocol.
-
-A user can request the addition of a new dispute agent to the Commuto Protocol's list of dispute agents by calling the
-corresponding Commuto Protocol smart contract function and passing a UUID to uniquely identify the proposal, the dispute
-agent candidate's public verification key, the dispute agent candidate's Commuto Interface Id, and a hash of a string
-describing why the candidate is qualified for the role of dispute agent. This will add a proposal for the addition of a
-dispute agent to a map of all currently open proposals for the addition of a dispute agent. The user will then broadcast
-this data, along with the description string in its entirety, across the peer-to-peer network. If the issuance request
-is approved, the user can call the corresponding Commuto Protocol smart contract function, which will require the newly
-approved dispute agent to lock 10000 STBL in escrow, and will append the newly approved dispute agent's public
-verification key and Interface Id to the Commuto Protocol's list of dispute agents. When a dispute agent wishes to be
-removed from the Commuto Protocol's list of dispute agents, they can request their removal via a process similar to that
-of adding a dispute agent, but when such a proposal is approved, the former dispute agent will call the corresponding
-Commuto Protocol smart contract function which will remove the former dispute agent's information from the Commuto
-Protocol's list of dispute agents and return the former agent's 10000 STBL deposit.
-
-A dispute agent can request compensation for having successfully resolved disputes by calling the corresponding Commuto
-Protocol smart contract function and passing a UUID to uniquely identify the proposal, the UUID of the disputed swap,
-the requested amount of STBL for compensation, the dispute agent's signed message describing the dispute resolution, and
-a hash of a string explaining why the dispute agent deserves compensation for resolving this dispute. This will
-determine if the dispute was actually resolved by the resolution signed by this dispute agent, and if so, will add a
-proposal for compensation of a dispute agent to a map of all currently open dispute agent compensation proposals. The
-user will then broadcast this data, along with the compensation justification string in its entirety, across the
-peer-to-peer network. CMTO token holders may request more information from the dispute agent, via a chat feature in a
-Commuto Interface. The default compensation for dispute agents is one third of the combined service fees for the
-disputed swap.  If the dispute agent compensation request is approved, the dispute agent can call the corresponding
-Commuto Protocol smart contract function, which will send the amount of STBL specified in the compensation request from
-the pool of accumulated service fees to the dispute agent.
+Every time a non-disputed swap is closed or a swap is disputed, CommutoSwap transfers the swap's service fees to the
+Primary TimelockController. The Primary TimelockController has a function to transfer service fees to the Commuto Token
+Contract, where they will then be distributed to CMTO holders. By default, this function can be called by anyone at any
+time. However, the function can be temporarily disabled by a governance proposal in order to accumulate service fees for
+a miscellaneous expense.
 
 If dispute agents are unable to resolve a disputed swap within 1 week using the process described below, a user may open
-dispute resolution to CMTO token holders, who may approve a dispute resolution by voting. This dispute resolution
-process is described below.
+dispute resolution to CMTO token holders via the Dispute Resolution Governor.
 
 Dispute Process:
 In the process described above, both the buyer and seller have opportunities to misbehave and attempt to obtain payment
@@ -381,7 +324,7 @@ Then the escalated dispute is resolved with the following process:
 amount of STBL to be paid out to the maker and taker, and the amount (if any) of STBL to be confiscated and sent to the
 service fee pool.
 
-2) CMTO token holders vote on the governance proposals submitted by the swappers If proposals do not pass, the swappers
+2) CMTO token holders vote on the governance proposals submitted by the swappers. If proposals do not pass, the swappers
 may re-submit alternative proposals until a proposal passes.
 
 3) If a resolution proposal does pass, then anyone can execute the proposal via the governance timelock. When such a
