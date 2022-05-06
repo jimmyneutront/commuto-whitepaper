@@ -101,8 +101,9 @@ service fee and the swap amount in escrow. The taker begins listening to the blo
 OfferTaken event corresponding to the newly taken swap. The taker creates a swap object with all the information
 specified in their EVM compatible Swap struct as well as the payment details string, sets the swap object's status
 property to "takeOfferTxPublished" and stores this object locally. When the taker detects the emission of the OfferTaken
-event corresponding to the new swap, they set the swap object's status to "awaitingTakerInfoAnnouncement" and create the
-following two JSON strings:
+event corresponding to the new swap, they set the swap object's status to "awaitingTakerInfoAnnouncement", begin
+listening for the emission of a DisputeRaised event corresponding to the new swap, and create the following two JSON
+strings:
 (the message JSON string)
 {
 "sender":<the taker's newly created interface id as specified in their Swap object as a Base64 string>,
@@ -131,40 +132,40 @@ encrypts the AES-256 key and initialization vector using the maker's public key,
 the first string as a message in the CIN Matrix room.
 The taker begins listening to the CIN Matrix room for a message in JSON string format with the "sender" field equal to
 the maker's interface id and the "recipient" field equal to the taker's interface id.
-When the maker detects the OfferTaken event corresponding to their offer, they transform their local offer object to a
-swap object and set its status to "awaitingTakerInfo" and begin listening to the CIN Matrix room for a message with the
-"sender" field equal to the taker's interface id as specified in the emitted OfferTaken event, and the "recipient" field
-equal to the maker's interface id. If the maker finds such a message, they create byte arrays from the Base64-encoded
-strings in the message's "encryptedKey" and "encryptedIV" fields. If byte array creation fails, the maker discards the
-message and continues to listen for a valid message. If byte array creation succeeds, the maker retrieves the private
-key associated with the interface id in the message's "recipient" field and attempts to decrypt the encrypted key and
-initialization vector byte arrays. If decryption fails, the maker discards the message and continues listening for a
-valid message. If decryption succeeds, the maker creates a byte array from the Base64-encoded string in the message's
-"payload" field and attempts to decrypt it using the decrypted key and initialization vector. If byte array creation or
-payload decryption fails, the maker discards the message and continues listening for a valid message. If byte array
-creation and decryption succeeds, the maker attempts to restore the payload JSON from the decrypted byte array. If
-restoration fails, the maker discards the message and continues to listen for a valid message. If restoration succeeds,
-the maker ensures that the payload's "msgType" field equals "takerInfo". If it does not, the maker discards the message
-and continues listening for a valid message. If it does, the maker creates a byte array from the Base64-encoded string
-in the payload's "swapId" field and compares it to the swap id specified in the emitted OfferTaken event. If byte array
-creation fails or the two do not match, the maker discards the message and continues to listen for a valid message. If
-the two do match, the maker attempts to create a public key from the Base64-encoded string in the payload's "pubKey"
-field and create a byte array from the Base64-encoded string in the message's "sender" field. If public key or byte
-array creation fails, the maker discards the message and continues listening for a valid message. If public key and byte
-array creation succeed, the maker compares the interface id of the public key to the byte array. If the two do not
-match, the maker discards the message and continues to listen for a valid message. If the two do match, the maker
-restores the signature byte array from the Base-64 encoded string in the "signature" field and attempts to verify using
-this byte array, the created public key, and the SHA-256 hash of the encrypted payload byte array. If signature
-verification fails, the maker discards the message and continues to listen for a valid message. If signature
-verification succeeds, the maker creates a byte array from the Base64-encoded string in the payload's "paymentDetails"
-field and attempts to restore the payment details JSON from the byte array. If byte array creation or JSON restoration
-fails, the maker discards the message and continues to listen for a valid message. If byte array creation and JSON
-restoration succeed, the maker checks that the payment details correspond to the payment method that the taker chose
-when taking the offer. If they do not match, the maker discards the message and continues to listen for a valid message.
-If they do match, the maker has confirmed that the key contained in the message is the taker's public key, and that the
-payment details contained in the message were supplied by the taker and are valid, and so the maker associates the
-taker's public key with the taker's interface id and stores them locally, and stores the taker's payment details locally
-as well.
+When the maker detects the OfferTaken event corresponding to their offer, they begin listening for the emission of a
+DisputeRaised event corresponding to their new swap, transform their local offer object to a swap object and set its
+status to "awaitingTakerInfo" and begin listening to the CIN Matrix room for a message with the "sender" field equal to
+the taker's interface id as specified in the emitted OfferTaken event, and the "recipient" field equal to the maker's
+interface id. If the maker finds such a message, they create byte arrays from the Base64-encoded strings in the
+message's "encryptedKey" and "encryptedIV" fields. If byte array creation fails, the maker discards the message and
+continues to listen for a valid message. If byte array creation succeeds, the maker retrieves the private key associated
+with the interface id in the message's "recipient" field and attempts to decrypt the encrypted key and initialization
+vector byte arrays. If decryption fails, the maker discards the message and continues listening for a valid message. If
+decryption succeeds, the maker creates a byte array from the Base64-encoded string in the message's "payload" field and
+attempts to decrypt it using the decrypted key and initialization vector. If byte array creation or payload decryption
+fails, the maker discards the message and continues listening for a valid message. If byte array creation and decryption
+succeeds, the maker attempts to restore the payload JSON from the decrypted byte array. If restoration fails, the maker
+discards the message and continues to listen for a valid message. If restoration succeeds, the maker ensures that the
+payload's "msgType" field equals "takerInfo". If it does not, the maker discards the message and continues listening for
+a valid message. If it does, the maker creates a byte array from the Base64-encoded string in the payload's "swapId"
+field and compares it to the swap id specified in the emitted OfferTaken event. If byte array creation fails or the two
+do not match, the maker discards the message and continues to listen for a valid message. If the two do match, the maker
+attempts to create a public key from the Base64-encoded string in the payload's "pubKey" field and create a byte array
+from the Base64-encoded string in the message's "sender" field. If public key or byte array creation fails, the maker
+discards the message and continues listening for a valid message. If public key and byte array creation succeed, the
+maker compares the interface id of the public key to the byte array. If the two do not match, the maker discards the
+message and continues to listen for a valid message. If the two do match, the maker restores the signature byte array
+from the Base-64 encoded string in the "signature" field and attempts to verify using this byte array, the created
+public key, and the SHA-256 hash of the encrypted payload byte array. If signature verification fails, the maker
+discards the message and continues to listen for a valid message. If signature verification succeeds, the maker creates
+a byte array from the Base64-encoded string in the payload's "paymentDetails" field and attempts to restore the payment
+details JSON from the byte array. If byte array creation or JSON restoration fails, the maker discards the message and
+continues to listen for a valid message. If byte array creation and JSON restoration succeed, the maker checks that the
+payment details correspond to the payment method that the taker chose when taking the offer. If they do not match, the
+maker discards the message and continues to listen for a valid message. If they do match, the maker has confirmed that
+the key contained in the message is the taker's public key, and that the payment details contained in the message were
+supplied by the taker and are valid, and so the maker associates the taker's public key with the taker's interface id
+and stores them locally, and stores the taker's payment details locally as well.
 The maker then sets the status of their local swap object to "receivedTakerInfo" and prepares the following two JSON
 strings:
 (the message JSON string)
@@ -243,7 +244,6 @@ detects the emission of a BuyerClosed event corresponding to the swap, the buyer
 "closed". When the seller detects the emission of a SellerClosed event corresponding to the swap, the seller marks their
 local swap object as "closed".
 
-#TODO: Maker and Taker should begin listening for DisputeRaised events as soon as an offer is taken
 The following is a description of how Interfaces will interact with each other and with the on-chain Commuto Protocol as
 described in the whitepaper in order to raise and resolve disputes.
 The maker or taker of an open swap decides to raise a dispute, and calls the Commuto Protocol's raiseDispute function,
