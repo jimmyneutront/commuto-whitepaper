@@ -196,9 +196,8 @@ specifying the offer id, prompting other users to remove it from their offer boo
 
 Governance and Revenue Distribution:
 The Commuto Protocol uses OpenZepplin's system of modular Governor contracts for on-chain governance. The Commuto
-Protocol's Token, the Commuto Token (with symbol "CMTO") is used to determine voting power and for revenue distribution.
-At the end of every week, accumulated service fees are distributed to CMTO holders, according to the percentage of all
-issued CMTO tokens that they hold.
+Protocol's Token, the "Commuto Token" (with symbol "CMTO") is used to determine voting power and for revenue
+distribution, and its contract is derived from OpenZepplin's ERC20Permit contract and ERC20Snapshot contract.
 The Commuto Protocol's on-chain governance consists of four contracts: the Primary Governor and its TimelockController,
 and the Dispute Resolution Governor and its TimelockController. The latter pair are used by Commuto Protocol users
 to propose resolutions for disputed swaps that have been escalated for resolution by CMTO holders, via a call by the
@@ -226,6 +225,35 @@ Contract, where they will then be distributed to CMTO holders. By default, this 
 time. However, the function can be temporarily disabled by a governance proposal in order to accumulate service fees for
 a miscellaneous expense.
 
+Revenue distribution for each stablecoin supported by the Commuto Protocol is handled in a separate but identical
+manner. To bootstrap the revenue distribution for a specific stablecoin (STBL), a revenue distribution snapshot is
+created. A revenue distribution snapshot at a certain block records the amount of STBL held by the CMTO contract at that
+block, a snapshot of the balances of all CMTO token holders in that block, and the total supply of CMTO tokens at that
+block. Once a revenue snapshot for a particular stablecoin is created, a new one cannot be created until one week has
+passed. Additionally, the CMTO contract will maintain the following mapping: (in Solidity syntax):
+lastRevenueCollection = mapping (address => mapping (address => uint256));
+The outer mapping maps the addresses of supported stablecoin contracts to the inner mapping. The inner mapping maps the
+addresses of CMTO token holders to the block number at which they last called the CMTO contract's revenue collection
+function to collect revenue in the stablecoin corresponding to the address supplied as the key for the outer mapping. So
+for example, the value at lastRevenueCollection[<DAI contract address>][<Alice's address>] is the block at which Alice
+last collected the portion of the Commuto Protocol's revenue in DAI to which she is entitled. Within the week after
+revenue distribution snapshot creation, CMTO token holders can call the CMTO contract's revenue collection function.
+When a CMTO token holder calls the CMTO contract's revenue function and specifies the contract address of the stablecoin
+they wish to collect, the revenue collection function looks up the block number at which the most recent revenue
+distribution snapshot was taken for the specified stablecoin, and checks in the lastRevenueCollection map to find the
+block number at which the caller last collected revenue in that stablecoin. If that block number is greater than the
+block number at which the most recent revenue distribution snapshot was taken, then the caller has already collected
+revenue in the specified stablecoin during the current week, and the revenue collection function will revert. Otherwise,
+the revenue collection function will look up in the most recent revenue distribution snapshot the amount of the
+specified stablecoin held by the CMTO contract, the amount of CMTO tokens held by the caller, and the total supply of
+CMTO tokens. Then the revenue collection function will multiply the caller's CMTO token balance by 100, divide the
+result by the total supply of CMTO tokens, multiply that result by the amount of the specified stablecoin held by the
+CMTO contract, and divide that by 100. The resulting amount of the specified stablecoin is transferred to the caller.
+Then the revenue distribution function emits a RevenueCollected event, specifying the address of the caller, the address
+of the stablecoin contract in which they collected revenue, and the amount of stablecoin they collected. Then the
+revenue distribution function updates the value at lastRevenueCollection[<specified stablecoin contract address>]
+[<caller's address>] with the current block number.
+
 If dispute agents are unable to resolve a disputed swap within 1 week using the process described below, a user may open
 dispute resolution to CMTO token holders via the Dispute Resolution Governor.
 
@@ -252,7 +280,6 @@ is the maker or taker. Then, in a map of all disputes, raiseDispute will record 
 which the dispute was raised, and the addresses of the selected dispute agents. Then raiseDispute will emit a
 DisputeRaised event, specifying the addresses of all selected dispute agents.
 
-#TODO: Describe this process in the Commuto Interface Specification
 2) Through the Commuto Interface, each user enters a private chat room with the three dispute agents and explains the
 circumstances of the dispute, which may involve problems sending or receiving FIAT payment, an unresponsive
 peer, or other reason. The dispute agents also enter a private chat room amongst themselves to discuss a resolution.
