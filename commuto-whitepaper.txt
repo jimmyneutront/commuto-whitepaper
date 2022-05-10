@@ -226,33 +226,43 @@ time. However, the function can be temporarily disabled by a governance proposal
 a miscellaneous expense.
 
 Revenue distribution for each stablecoin supported by the Commuto Protocol is handled in a separate but identical
-manner. To bootstrap the revenue distribution for a specific stablecoin (STBL), a revenue distribution snapshot is
-created. A revenue distribution snapshot at a certain block records the amount of STBL held by the CMTO contract at that
-block, a snapshot of the balances of all CMTO token holders in that block, and the total supply of CMTO tokens at that
-block. Once a revenue snapshot for a particular stablecoin is created, a new one cannot be created until one week has
-passed. Additionally, the CMTO contract will maintain the following mapping: (in Solidity syntax):
-lastRevenueCollection = mapping (address => mapping (address => uint256));
+manner. To bootstrap the revenue distribution for a specific stablecoin (STBL), a Revenue Distribution Snapshot is
+created by calling the CommutoToken contract's takeRevenueDistributionSnapshot function, specifying:
+address stablecoin: the address of the stablecoin for which to take the snapshot
+A Revenue Distribution Snapshot at a certain block contains the block number, the amount of STBL held by the
+CommutoToken contract at that block, and a snapshotId of a snapshot of CommutoToken balances taken in the same function
+call that created the Revenue Distribution Snapshot. Once a Revenue Distribution Snapshot for a particular stablecoin is
+created, a new one cannot be created until the Revenue Collection Period has passed. Additionally, the CommutoToken
+contract will maintain the following mapping: (in Solidity syntax)
+latestRevenueCollection = mapping (address => mapping (address => uint256));
 The outer mapping maps the addresses of supported stablecoin contracts to the inner mapping. The inner mapping maps the
-addresses of CMTO token holders to the block number at which they last called the CMTO contract's revenue collection
-function to collect revenue in the stablecoin corresponding to the address supplied as the key for the outer mapping. So
-for example, the value at lastRevenueCollection[<DAI contract address>][<Alice's address>] is the block at which Alice
-last collected the portion of the Commuto Protocol's revenue in DAI to which she is entitled. Within the week after
-revenue distribution snapshot creation, CMTO token holders can call the CMTO contract's revenue collection function.
-When a CMTO token holder calls the CMTO contract's revenue function and specifies the contract address of the stablecoin
-they wish to collect, the revenue collection function looks up the block number at which the most recent revenue
-distribution snapshot was taken for the specified stablecoin, and checks in the lastRevenueCollection map to find the
-block number at which the caller last collected revenue in that stablecoin. If that block number is greater than the
-block number at which the most recent revenue distribution snapshot was taken, then the caller has already collected
-revenue in the specified stablecoin during the current week, and the revenue collection function will revert. Otherwise,
-the revenue collection function will look up in the most recent revenue distribution snapshot the amount of the
-specified stablecoin held by the CMTO contract, the amount of CMTO tokens held by the caller, and the total supply of
-CMTO tokens. Then the revenue collection function will multiply the caller's CMTO token balance by 100, divide the
-result by the total supply of CMTO tokens, multiply that result by the amount of the specified stablecoin held by the
-CMTO contract, and divide that by 100. The resulting amount of the specified stablecoin is transferred to the caller.
-Then the revenue distribution function emits a RevenueCollected event, specifying the address of the caller, the address
-of the stablecoin contract in which they collected revenue, and the amount of stablecoin they collected. Then the
-revenue distribution function updates the value at lastRevenueCollection[<specified stablecoin contract address>]
-[<caller's address>] with the current block number.
+addresses of CommutoToken token holders to the block number at which they last called the CommutoToken contract's
+collectRevenue function to collect revenue in the stablecoin corresponding to the address supplied as the key for the
+outer mapping. So for example, the value at latestRevenueCollection[<DAI contract address>][<Alice's address>] is the
+number of the block in which Alice last collected the portion of the Commuto Protocol's revenue in DAI to which she is
+entitled. Within the Revenue Collection Period after Revenue Distribution Snapshot creation, Commuto Token holders can
+call the CommutoToken contract's collectRevenue function, specifying:
+stablecoin: the address of the stablecoin in which to collect revenue
+recipient: the address to which collectRevenue should send the revenue
+When a Commuto Token holder calls this function, it looks up the most recent Revenue Distribution Snapshot that was
+taken for the specified stablecoin, and checks in the lastRevenueCollection map to find the block number at which the
+caller last collected revenue in that stablecoin. If that block number is greater than or equal to the block number at
+which the most recent revenue distribution snapshot was taken, then the caller has already collected revenue in the
+specified stablecoin during the current Revenue Collection Period, and the function call will revert. Otherwise,
+collectRevenue will look up in the most recent Revenue Distribution Snapshot for the specified stablecoin the amount of
+said stablecoin held by the CommutoToken contract, the amount of Commuto Tokens held by the caller, and the total supply
+of Commuto Tokens. Then the revenue collection function will multiply the caller's CMTO token balance by 100_000_000,
+divide the result by the total supply of CMTO tokens, multiply that result by the amount of the specified stablecoin
+held by the CMTO contract, and divide that by 100_000_000. Then it transfers the resulting amount of the specified
+stablecoin to the caller. (This allows the collection of revenue by accounts that hold as little as 0.000001 percent of
+the total amount of Commuto Tokens in circulation.) Then the revenue distribution function emits a RevenueCollected
+event, specifying:
+stablecoin: the address of the stablecoin in which revenue was collected
+address collector: the address of the caller, who collected revenue
+address recipient: the address to which the revenue was sent
+uint256 amount: the amount of revenue sent
+Then the revenue distribution function updates the value at
+latestRevenueCollection[<specified stablecoin contract address>][<caller's address>] with the current block number.
 
 If dispute agents are unable to resolve a disputed swap within 1 week using the process described below, a user may open
 dispute resolution to CMTO token holders via the Dispute Resolution Governor.
