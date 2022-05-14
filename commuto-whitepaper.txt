@@ -215,8 +215,8 @@ Addition or removal of support for specific stablecoins
 Addition or removal of dispute agents
 Compensation of dispute agents (dispute agents and their roles in the dispute process are described below)
 Changes to the service fee rate
-The Primary Governor has a quorum requirement of 40% and a proposal threshold of 1%. Both Governors have a one day delay
-between the beginning of a proposal's voting period and the time at which the proposal is first created, and all
+The Primary Governor has a quorum requirement of 40% and a proposal threshold of 100_000. Both Governors have a one day
+delay between the beginning of a proposal's voting period and the time at which the proposal is first created, and all
 proposals have a one week voting period. If a proposal is not approved within one week of its creation, it is defeated.
 
 Every time a non-disputed swap is closed or a swap is disputed, CommutoSwap transfers the swap's service fees to the
