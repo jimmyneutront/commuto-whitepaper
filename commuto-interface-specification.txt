@@ -12,12 +12,6 @@ the key encoded as bytes according to the PKCS#1 standard. A symmetric key said 
 containing the key encoded as bytes. A key said to be in "string format" is the Base64 string representation of a key in
 byte format.
 
-message JSON fields:
-sender
-payload
-signature
-recipient
-
 Interface Interaction with Commuto Protocol:
 //TODO: Don't discard message if "msgType" doesn't match, because it could be a chat message
 //TODO: Update spec with updated message handling logic
@@ -32,11 +26,10 @@ The following is depicted in the Business Process Model Notation diagrams found 
 Phase 1:
 The taker begins listening to the blockchain for the emission of OfferOpened events.
 The maker generates a new 2048-bit RSA key pair and a new UUID. The maker prepares an EVM compatible Offer struct to be
-passed to the Commuto Protocol's newOffer function. The maker sets the Offer object's interfaceId property to the
-SHA-256 hash of the public key in byte format of the newly generated key pair. The maker specifies the offer's price in
-UTF-8 byte format and sets the Offer object's price property equal to the result. The maker specifies the settlement
-methods to be used in UTF-8 bytes and sets the Offer object's settlementMethods property to an array of the results.
-The maker creates a JSON string containing their payment details with the following structure:
+passed to the Commuto Protocol's newOffer function. The maker sets the Offer struct's interfaceId property to the
+SHA-256 hash of the public key in byte format of the newly generated key pair. The maker specifies the settlement
+methods to be used in UTF-8 bytes and sets the Offer object's settlementMethods property to an array of the results. The
+maker creates a JSON string containing their payment details with the following structure:
 {
 "paymentDetails":<details about maker's particular fiat payment accounts to be used, like a cashtag or bank account
 information. The maker supplies one set of payment details for each supported payment method.>
@@ -71,7 +64,7 @@ offer, they call the Commuto Protocol's getSwap function and pass the id of the 
 object.
 When the taker detects the emission of the maker's OfferOpened event, they begin listening to the CIN Matrix room for a
 message in JSON string format with the "msgType" field equal to "pka" and the "sender" field equal to the interfaceId
-specified in the emitted OpenOffer event. If the taker finds such a message, they create a byte array from the
+specified in the emitted OfferOpened event. If the taker finds such a message, they create a byte array from the
 Base64-encoded string in the message's "payload" field, and then attempt to restore the payload JSON from the byte
 array. If restoration fails, the taker discards the message and continues to listen for a valid message. If restoration
 succeeds, the taker creates a byte array from the Base64-encoded string in the payload's "offerId" field and compares it

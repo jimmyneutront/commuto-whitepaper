@@ -67,8 +67,8 @@ The Commuto Protocol can be best described as a sequence of simple steps. The Co
 stablecoins (such as DAI, USDC, BUSD, USDT) and many national currencies, so this document will refer to a nonspecific
 stablecoin with the symbol STBL, and a generic national currency with the symbol FIAT. Sellers have STBL and want FIAT,
 and buyers have FIAT and want STBL.
-A Commuto Interface Id is an array of bytes that refers to a specific Commuto Interface instance, and contains a
-SHA-256 hash of a public key belonging to a Commuto Interface instance.
+A Commuto Interface Id is an SHA-256 hash of a public key belonging to a Commuto Interface instance, and thus refers to
+a specific Commuto Interface instance
 1) The maker will create an offer by calling the openOffer function, specifying:
 bytes16 offerID: a Universally Unique Identifier (UUID) to uniquely identify the offer
 Offer newOffer:
@@ -84,8 +84,18 @@ Offer newOffer:
     uint256 serviceFeeRate: the rate, expressed as a percentage times 100, of the taken swap amount that will be charged
         to both the maker and the taker as a service fee
     SwapDirection direction: whether the offer is in the BUY or SELL direction
-    bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
-    bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
+    bytes[] settlementMethods: all the methods by which the maker is willing to send/receive FIAT payment. Each element
+        in this array is a JSON string in the following format:
+        {
+        "f": The symbol of a fiat currency that the maker is willing to accept/pay, such as USD, EUR, GBP, etc.
+        "p": The price of the offer, which is the amount of the fiat currency specified in the "f" field per one STBL as
+        a floating point number. For example, if the offer maker wants to exchange GBP for DAI at a rate of 0.83 GBP per
+        DAI, they set this field equal to "0.83".
+        "m": The method by which the maker is willing to send/receive payment denominated in the currency specified in
+        "f". For example, if the maker wants to send/receive payment via a SWIFT transfer, they set this field equal to
+        "SWIFT".
+        }
+        which is then UTF-8 encoded to a string of bytes.
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
         is being created
 This will add the offer to a map of all offers and the settlement method information to a map of supported settlement
@@ -112,8 +122,9 @@ Swap newSwap:
     uint256 serviceFeeRate: the rate, expressed as a percentage times 100, of the taken swap amount that will be charged
         to both the maker and the taker as a service fee
     SwapDirection direction: whether the offer is in the BUY or SELL direction
-    bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
-    bytes settlementMethod: the name of the settlement method to be used for settlement in UTF-8 byte format
+    bytes settlementMethod: the settlement method that the taker has selected from the maker's list of accepted
+    settlement methods, the price, fiat currency and fiat transfer method the taker is agreeing to use by selecting this
+    settlement method.
     uint256 protocolVersion: a version number describing the version of the Commuto Protocol on which the swap will be
         executed
     bool isPaymentSent: used by contract code to track payment status, will be set to false by takeOffer
@@ -129,8 +140,8 @@ id and the taker's interface Id.
 
 3) If the maker of the offer is the seller, the maker fills the swap by calling the fillSwap function, specifying:
 bytes16 swapID: the id of the swap to fill
-This will ensure that the caller is the maker and seller and that the swap has not already been filled, and will then
-lock up the amount of STBL to be swapped in escrow. This will then emit an SwapFilled event, specifying the swap id.
+This will ensure that the caller is the maker and seller and that the swap must be filled, and will then lock up the
+amount of STBL to be swapped in escrow. This will then emit an SwapFilled event, specifying the swap id.
 
 4) The buyer sends FIAT payment to the seller, using the payment method and user information specified in the swap, and
 then reports that FIAT payment has been sent by calling the reportPaymentSent function, specifying:
@@ -162,30 +173,12 @@ event, specifying the swap id. Once buyer and seller have both requested swap cl
 A maker can edit the price and supported settlement methods of their offer by calling the editOffer function,
 specifying:
 bytes16 offerID: the id of the swap offer to edit
-Offer editedOffer:
-    bool isCreated: used by contract code to check for offer existence, will be set to true by openOffer
-    bool isTaken: used by contract code to check for offer taken status, will be set to false by openOffer
-    address maker: the maker's address, set to msg.sender by openOffer
-    bytes interfaceId: the maker's Commuto Interface Id
-    address stablecoin: the contract address of the stablecoin to be swapped
-    uint256 amountLowerBound: the lower bound of the range of amount of STBL to be swapped
-    uint256 amountUpperBound: the upper bound of the range of amount of STBL to be swapped
-    uint256 securityDepositAmount: the amount of STBL to be used as a security deposit which must be not less than 10%
-        of amountUpperBound
-    uint256 serviceFeeRate: the rate, expressed as a percentage times 100, of the taken swap amount that will be charged
-        to both the maker and the taker as a service fee
-    SwapDirection direction: whether the offer is in the BUY or SELL direction
-    bytes price: the price of the offer, in the format (amount of FIAT) per (1 STBL)
-    bytes[] settlementMethods: the names of the settlement methods to be used for settlement in UTF-8 byte format
-    uint256 protocolVersion: a version number describing the version of the Commuto Protocol for which the offer is
-        is being created
-bool editPrice: whether to apply the price of editedOffer to the open offer with id offerID
-bool editSettlementMethods: whether to apply the settlement methods of editedOffer to the open offer with id offerID
+Offer editedOffer: an Offer struct almost identical to that which the maker created in order to open the offer, but with
+    updated settlement methods
 This will ensure the caller of the function is the maker of the swap offer with the specified id, that the offer exists,
-and that the offer has not been taken. If editPrice is true, this will set the price of the open offer to that of
-editedOffer. If editSettlementMethods is true, this will remove support for all the supported settlement methods of the
-open offer, and then add support to the offer for all settlement methods specified in editedOffer. This will not
-change any other properties of the offer.
+and that the offer has not been taken. Then this will remove support for all the supported settlement methods of the
+open offer, and then add support to the offer for all settlement methods specified in editedOffer. This will not change
+any other properties of the offer.
 
 A maker can cancel their offer by calling the cancelOffer function, specifying:
 bytes16 offerID: the id of the swap offer to close
@@ -285,18 +278,18 @@ bytes16 swapID: the ID of the swap that is being disputed
 address disputeAgent0: the address of an active dispute agent
 address disputeAgent1: the address of an active dispute agent
 address disputeAgent2: the address of an active dispute agent
-This will ensure the swap exists, that the subitted addresses belong to active dispute agents, that the caller has chosen
-three different dispute agents, that the swap is not closed, that the swap is not already disputed, and that the caller
-is the maker or taker. Then, in a map of all disputes, raiseDispute will record who raised the dispute, the block at
-which the dispute was raised, and the addresses of the selected dispute agents. Then raiseDispute will emit a
+This will ensure the swap exists, that the submitted addresses belong to active dispute agents, that the caller has
+chosen three different dispute agents, that the swap is not closed, that the swap is not already disputed, and that the
+caller is the maker or taker. Then, in a map of all disputes, raiseDispute will record who raised the dispute, the block
+at which the dispute was raised, and the addresses of the selected dispute agents. Then raiseDispute will emit a
 DisputeRaised event, specifying the addresses of all selected dispute agents.
 
 2) Through the Commuto Interface, each user enters a private chat room with the three dispute agents and explains the
 circumstances of the dispute, which may involve problems sending or receiving FIAT payment, an unresponsive
-peer, or other reason. The dispute agents also enter a private chat room amongst themselves to discuss a resolution.
-This process is described in the Commuto Interface Specification. The dispute agents have one week to determine a
-resolution to the dispute. They determine the amounts of STBL held in escrow that the buyer and seller should receive,
-and then each dispute agent calls the proposeResolution function, specifying:
+peer, or other reason. The dispute agents also enter a private chat room amongst themselves to discuss a resolution, as
+described in the Commuto Interface Specification. The dispute agents have one week to determine a resolution to the
+dispute. They determine the amounts of STBL held in escrow that the buyer and seller should receive, and then each
+dispute agent calls the proposeResolution function, specifying:
 bytes16 swapID: the ID of the disputed swap for which a resolution is being proposed
 uint256 makerPayout: the amount of STBL held in escrow that the caller believes the maker should receive
 uint256 takerPayout: the amount of STBL held in escrow that the caller believes the taker should receive
