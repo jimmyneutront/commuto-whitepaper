@@ -16,22 +16,53 @@
     \maketitle
 
     \begin{abstract}
-        Commuto is a collection of software allowing private, noncustodial, censorship resistant
-        exchange of national currencies and tokens adopting the ERC20\cite{ERC20} standard on
-        Ethereum Virtual Machine\cite{Ethereum} compatible blockchains.
-        The Commuto Protocol's name comes from the Latin word ``commuto'', meaning ``I exchange'' or
-        ``I barter.''
+    Commuto is a collection of software allowing private, noncustodial, censorship resistant
+    exchange of national currencies and tokens adopting the ERC20\cite{ERC20} standard on
+    Ethereum Virtual Machine\cite{Ethereum} compatible blockchains.
+    The Commuto Protocol's name comes from the Latin word ``commuto'', meaning ``I exchange'' or ``I
+    barter.''
     \end{abstract}
 
     \section*{Introduction}
 
-        Commuto is primarily composed of two software components: a set of smart contracts deployed
-        on an EVM-compatible blockchain, and a set of applications that can interact both with said
-        on-chain contracts as well as other Commuto users.
-        The smart contracts will be referred to henceforth as ``Commuto Core'' and said applications
-        will be referred to as ``Commuto Interfaces''.
-        An intention expressed by a Commuto user to buy or sell a particular ERC20 token in exchange
-        for one or more particular national currency is known as an ``offer''.
-        An exchange of national currency and ERC20 tokens between two users is known as a ``swap''.
+    Commuto is primarily composed of two software components: a set of smart contracts deployed on
+    an EVM-compatible blockchain, and a set of applications that can interact both with said
+    on-chain contracts as well as other Commuto users.
+    The smart contracts will be referred to henceforth as ``Commuto Core'' and said applications
+    will be referred to as ``Commuto Interfaces''.
+    An intention expressed by a Commuto user to buy or sell a particular ERC20 token in exchange for
+    one or more particular national currency is known as an ``offer''.
+    An exchange of national currency and ERC20 tokens between two users is known as a ``swap''.
+
+    Because Commuto allows users to exchange national currency, certain pieces of private
+    information (such as bank account details and addresses) must be exchanged between users.
+    Additionally, users should be able to communicate with each other in a convenient manner, in
+    order to resolve any problems that may arise during the swap process.
+    While an EVM blockchain (on which Commuto Core contracts are deployed could) theoretically
+    be used to exchange such information by storing it (even if only temporarily) on-chain, the
+    relatively high cost of storage on such blockchains makes this approach unfeasible.
+    Additionally, many users are likely accustomed to instant messaging applications that
+    deliver messages in less than a second.
+    The relatively longer time required to incorporate a new transaction into a such blockchain is
+    yet another reason why an EVM-blockchain-based communication system between users is not
+    practical.
+    Therefore, Commuto Interfaces use Matrix\cite{Matrix} to reliably exchange information in a
+    decentralized, censorship-resistant manner.
+    Matrix is a network of nodes running software conforming to the Matrix
+    Specification\cite{MatrixSpec}, which defines a set of open APIs for decentralised
+    communication, suitable for securely publishing, persisting and subscribing to data over a
+    global open federation of servers with no single point of control.
+    A Matrix Room is a directed acyclic graph of Events, the ordering of which is the chronological
+    ordering of Events in the room.
+    Any node may maintain a copy of any such Room, and nods may add new elements to Rooms.
+    Events are simply JSON objects with zero or more ``parent'' events, which are chronological
+    predecessors in the event graph.
+    Nodes use state resolution algorithms and communicate with one another using federation
+    algorithms (as defined in the specification) in order to maintain persistent,
+    eventually-consistent synchronization of Room state across all nodes in the network.
+    Therefore, no single node (referred to in the Matrix Specification and henceforth in this paper
+    as a ``homeserver'') has control over any given Room.
+    Thus, due to its open, flexible, decentralized, censorship-resistant nature, Commuto uses Matrix
+    to exchange data between Commuto Interfaces.
 
 \end{document}
