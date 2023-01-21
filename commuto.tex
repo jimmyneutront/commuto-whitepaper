@@ -6,6 +6,7 @@
 
 % Packages
 \usepackage{amsmath}
+\usepackage{multirow}
 
 \author{jimmyt}
 
@@ -64,5 +65,66 @@
     as a ``homeserver'') has control over any given Room.
     Thus, due to its open, flexible, decentralized, censorship-resistant nature, Commuto uses Matrix
     to exchange data between Commuto Interfaces.
+
+    \section*{Commuto Core}
+
+    Commuto Core is composed of smart contracts that enable swaps between offer makers and offer
+    takers, and also allow the resolution of disputes between makers and takers.
+    (For example a dispute may arise when a token buyer claims to have sent payment to the seller,
+    but the seller claims that they have not received this payment.)
+    We begin by considering the operations of the CommutoSwap smart contract, which enables the
+    swapping process.
+    Subsequently, we explain the functionality of the contracts allowing dispute resolution,
+    governance, and the distribution of service fees collected by CommutoSwap.
+    Smart contract code snippets are written in Solidity\cite{Solidity}.
+    For readability, we include parameter names in function signatures, even though actual EVM smart
+    contract function signatures do not include parameter names.
+
+    \subsection*{CommutoSwap}
+
+    The CommutoSwap smart contract can be best understood by considering the steps of the swap
+    process, so we describe it in this context.
+    Note that, as described in the introduction, the swap process includes the exchange of
+    information via Matrix.
+    However, because this section focuses on the operations of CommutoSwap, we temporarily omit the
+    details of off-blockchain communication, and instead describe them in a later section.
+    Throughout this document, we use the symbol ERC to refer to any ERC20 token, and a the symbol
+    NCUR to refer to any national currency.
+    Sellers have ERC and want NCUR, and buyers have NCUR and want ERC.
+
+    \subsubsection*{Opening an Offer}
+
+    An offer maker opens an Offer by calling the \verb|openOffer| function.
+    This function has the following signature:
+    \begin{verbatim}
+    openOffer(bytes16 offerID, Offer newOffer)
+    \end{verbatim}
+    where \verb|offerID| is a Version-4 UUID\cite{UUID}, and \verb|newOffer| is an \verb|Offer|
+    struct that is defined as follows:
+    \begin{verbatim}
+    struct Offer {
+        bool isCreated
+        bool isTaken
+        address maker
+        bytes interfaceId
+        address stablecoin
+        uint256 amountLowerBound
+        uint256 amountUpperBound
+        uint256 securityDepositAmount
+        uint256 serviceFeeRate
+        SwapDirection direction
+        bytes[] settlementMethods
+        uint256 protocolVersion
+    }
+    \end{verbatim}
+    and \verb|SwapDirection| is an \verb|enum| that is defined as follows:
+    \begin{verbatim}
+    enum SwapDirection {
+        BUY
+        SELL
+    }
+    \end{verbatim}
+    A \verb|SwapDirection.BUY| value indicates that the maker of the Offer is a buyer, as previously
+    defined, and \verb|SwapDirection.SELL| is similar.
 
 \end{document}
