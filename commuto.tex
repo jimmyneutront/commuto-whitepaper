@@ -6,7 +6,14 @@
 
 % Packages
 \usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable}
 \usepackage{multirow}
+\usepackage{tikz}
+
+%\usepackage{showframe}
+
+\usetikzlibrary{positioning}
 
 \author{jimmyt}
 
@@ -89,8 +96,8 @@
     However, because this section focuses on the operations of CommutoSwap, we temporarily omit the
     details of off-blockchain communication, and instead describe them in a later section.
     Throughout this document, we use the symbol ERC to refer to any ERC20 token, and a the symbol
-    NCUR to refer to any national currency.
-    Sellers have ERC and want NCUR, and buyers have NCUR and want ERC.
+    CUR to refer to any national currency.
+    Sellers have ERC and want CUR, and buyers have CUR and want ERC.
 
     \subsubsection*{Opening an Offer}
 
@@ -114,8 +121,7 @@
         uint256 serviceFeeRate
         SwapDirection direction
         bytes[] settlementMethods
-        uint256 protocolVersion
-    }
+        uint256 protocolVersion }
     \end{verbatim}
     and \verb|SwapDirection| is an \verb|enum| that is defined as follows:
     \begin{verbatim}
@@ -126,5 +132,40 @@
     \end{verbatim}
     A \verb|SwapDirection.BUY| value indicates that the maker of the Offer is a buyer, as previously
     defined, and \verb|SwapDirection.SELL| is similar.
+    The properties of the \verb|Offer| struct are as follows: \\
+
+    \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
+    \hline
+    \multicolumn{3}{|c|}{Offer} \\
+    \hline
+    Property Type & Property Name & Description \\
+    \hline
+    bool & isCreated & Used by contract code to check for offer existence, will be set to true
+    by \verb|openOffer|. \\
+    bool & isTaken & Used by contract code to check whether an offer is taken, will be set to
+    false by \verb|openOffer|. \\
+    address & maker & The maker's address, will be sent to msg.sender by \verb|openOffer|. \\
+    bytes & interfaceId & An array of bytes that should be placed in the ``recipient'' field of any
+    message sent to the maker of this offer via Matrix. \\
+    address & stablecoin & The contract address of the token that the offer maker is offering to
+    swap. \\
+    uint256 & amountLowerBound & The lower bound on the range of token amounts that the maker is
+    willing to swap. \\
+    uint256 & amountUpperBound & The upper bound on the range of token amounts that the maker is
+    willing to swap. \\
+    uint256 & securityDepositAmount & The token amount to be used as a security deposit, which must
+    not be less than ten percent of amountUpperBound. \\
+    uint256 & serviceFeeRate & The percentage times 100 of the amount of swapped tokens that the
+    maker and taker must pay as a service fee. \\
+    SwapDirection & direction & Indicates whether the maker is offering to buy tokens or sell
+    tokens. \\
+    bytes[] & settlementMethods & An array of \verb|bytes|, each one representing a method by which
+    the maker is willing to send/receive payment for tokens. \\
+    uint256 & protocolVersion & A number optionally describing which version of the Commuto
+    Interface software was used to open this offer. \\
+        \hline
+    \end{longtable}
+
+
 
 \end{document}
