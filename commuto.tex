@@ -101,7 +101,7 @@
 
     \subsubsection*{Opening an Offer}
 
-    An offer maker opens an Offer by calling the \verb|openOffer| function.
+    An offer maker opens an offer by calling the \verb|openOffer| function.
     This function has the following signature:
     \begin{verbatim}
     openOffer(bytes16 offerID, Offer newOffer)
@@ -144,7 +144,7 @@
     by \verb|openOffer|. \\
     bool & isTaken & Used by contract code to check whether an offer is taken, will be set to
     false by \verb|openOffer|. \\
-    address & maker & The maker's address, will be sent to msg.sender by \verb|openOffer|. \\
+    address & maker & The maker's address, will be sent to \verb|msg.sender| by \verb|openOffer|. \\
     bytes & interfaceId & An array of bytes that should be placed in the ``recipient'' field of any
     message sent to the maker of this offer via Matrix. \\
     address & stablecoin & The contract address of the token that the offer maker is offering to
@@ -166,6 +166,166 @@
         \hline
     \end{longtable}
 
+    \pagebreak
+    When called, \verb|openOffer| does the following: \\
 
+    \begin{tikzpicture}[
+        question/.style={
+            % The shape
+            rectangle,
+            % The border
+            thin,
+            draw = black!100,
+            % The color
+            color = black,
+            % Font
+            font = \itshape
+        },
+        action/.style={
+            % The shape
+            rectangle,
+            % The border
+            thin,
+            draw = gray!100,
+            % The color
+            color = gray,
+            % Font
+            font = \itshape
+        },
+        fail/.style={
+            % The shape
+            rectangle,
+            % The border
+            thin,
+            draw = red!100,
+            % The color
+            color = red,
+            % Font
+            font = \itshape
+        },
+    ]
+        \node (isCreated) [question,align=left] {Does an \verb|Offer| with the \\ specified ID
+        already exist?};
+        \node (revert_e5) [action,align=left,right=of isCreated] {Revert with reason \\ string
+        \verb|"e5"|};
+        \path (isCreated) edge[->] node[pos=0.5,above] {Yes} (revert_e5);
+        \node (fail) [fail,right=of revert_e5] {Fail};
+        \path (revert_e5) edge[->] (fail);
+
+        \node (sufficientAmount) [question,align=left,below=of isCreated] {Is
+        \verb|amountLowerBound| greater \\ than 0?};
+        \path (isCreated) edge[->] node[pos=0.5,right] {No} (sufficientAmount);
+        \node (revert_e6) [action,align=left,right=of sufficientAmount] {Revert with reason \\
+        string \verb|"e6"|};
+        \path (sufficientAmount) edge[->] node[pos=0.5,above] {Yes} (revert_e6);
+        \path (revert_e6.east) edge[->] (fail);
+
+        \node (properRange) [question,align=left,below=of sufficientAmount ] {Is
+        \verb|amountLowerBound| greater \\ than \verb|amountUpperBound|?};
+        \path (sufficientAmount) edge[->] node[pos=0.5,right] {No} (properRange);
+        \node (revert_e7) [action,align=left,right=of properRange] {Revert with reason \\ string
+        \verb|"e7"|};
+        \path (properRange) edge[->] node[pos=0.5,above] {Yes} (revert_e7);
+        \path (revert_e7.east) edge[->] (fail.south);
+
+        \node (sufficientSecurityDeposit) [question,align=left,below=of properRange] {Is 10 $\times$ \verb|securityDepositAmount| \\ $\geq$ \verb|amountUpperBound|?};
+        \path (properRange) edge[->] node[pos=0.5,right] {No} (sufficientSecurityDeposit);
+        \node (revert_e8) [action,align=left,right=of sufficientSecurityDeposit] {Revert with reason \\ string \verb|"e8"|};
+        \path (sufficientSecurityDeposit) edge[->] node[pos=0.5,above] {Yes} (revert_e8);
+        \path (revert_e8.east) edge[->] (fail.south);
+
+        \node (calculateServiceFeeAmntLow) [action,align=left,below=of sufficientSecurityDeposit] {Let \verb|uint256| \\ \verb|serviceFeeAmountLowerBound| \\ = \verb|this.serviceFeeRate| $\times$ \\ \verb|amountLowerBound| $\div$ 10000};
+        \path (sufficientSecurityDeposit) edge[->] node[pos=0.5,right] {No} (calculateServiceFeeAmntLow);
+        \node (serviceFeeRateDisclaimer) [align=left,left=1mm of calculateServiceFeeAmntLow] {\verb|this.serviceFeeRate| \\ will be explained later \\ in this document.};
+
+        \node (sufficientServiceFee) [question,align=left,below=of calculateServiceFeeAmntLow] {Is \verb|serviceFeeRate > 0| and \\ \verb|serviceFeeAmountLowerBound| \\ = 0?};
+        \path (calculateServiceFeeAmntLow) edge[->] (sufficientServiceFee);
+        \node (revert_e9) [action,align=left,right=of sufficientServiceFee] {Revert with reason \\ string \verb|"e9"|};
+        \path (sufficientServiceFee) edge[->] node[pos=0.5,above] {Yes} (revert_e9);
+        \path (revert_e9.east) edge[->] (fail.south);
+
+        \node (validDirection) [question,align=left,below=of sufficientServiceFee] {Is \verb|direction| Buy or Sell?};
+        \path (sufficientServiceFee) edge[->] node[pos=0.5,right] {No} (validDirection);
+        \node (revert_e12) [action,align=left,right=of validDirection] {Revert with reason \\ string \verb|"e12"|};
+        \path (validDirection) edge[->] node[pos=0.5,above] {No} (revert_e12);
+        \path (revert_e12.east) edge[->] (fail.south);
+
+        \node (validToken) [question,align=left,below=of validDirection] {Is \\ \verb|this.stablecoins[stablecoin]| \\ true?};
+        \path (validDirection) edge[->] node[pos=0.5,right] {Yes} (validToken);
+        \node (stablecoinsNote) [align=left,left=1mm of validToken] {\verb|this.stablecoins| \\ will be explained later \\ in this document.};
+        \node (revert_e11) [action,align=left,right=of validToken] {Revert with reason \\ string \verb|"e11"|};
+        \path (validToken) edge[->] node[pos=0.5,above] {No} (revert_e11);
+
+        \node (openOffer) [action,align=left,below=of validToken] {
+            Create ERC20 \verb|token| using \verb|stablecoin|, let \verb|serviceFeeAmountUpperBound|
+            = \\ \verb|this.serviceFeeRate| $\times$ \verb|amountUpperBound| $\div$ \verb|10000|,
+            let \verb|depositAmount| \\ = \verb|securityDepositAmount| $+$
+            \verb|serviceFeeAmountUpperBound|, \\ set \verb|isCreated = true|,
+            \verb|isTaken = false|, \verb|maker = msg.sender|,\\ and
+            \verb|this.offers[offerID] = newOffer|.
+
+        };
+        \node (offersNote) [align=left,right=1mm of openOffer] {\verb|this.offers| \\ will be explained later \\ in this document.};
+        \path (validToken) edge[->] node[pos=0.5,right] {Yes} (openOffer);
+
+    \end{tikzpicture}
+
+    Continued on next page.
+
+    \begin{tikzpicture}[
+        question/.style={
+            rectangle, thin, draw = black!100, color = black, font = \itshape
+        },
+        action/.style={
+            rectangle, thin, draw = gray!100, color = gray, font = \itshape
+        },
+    ]
+    \node (addSettlementMethods) [action,align=left] {
+        For \verb|settlementMethod| in \verb|settlementMethods|: \\
+        \verb|self.offerSettlementMethods| / \\
+        \verb|[offerID][settlementMethod] = true|
+    };
+    \node (addSettlementMethodsNote) [align=left,right=1mm of addSettlementMethods] {\verb|this.offerSettlementMethods| \\ will be explained later \\ in this document.};
+
+    \node (emitEvent) [action, below=of addSettlementMethods] { Emit \verb|OfferOpened| with \verb|offerID| and \verb|interfaceId| };
+    \path (addSettlementMethods) edge[->] (emitEvent);
+
+    \node (verifyAllowance) [question, below=of emitEvent] { Is current \verb|token| allowance $>=$ \verb|depositAmount|? };
+    \path (emitEvent) edge[->] (verifyAllowance);
+    \node (revert_e13) [action,align=left,right=of verifyAllowance] {Revert with reason \\ string \verb|"e13"|};
+    \path (verifyAllowance) edge[->] node[pos=0.5,above] {No} (revert_e13);
+
+    \node (attemptTransfer) [action,align=left,below=of verifyAllowance] { Attempt to transfer \verb|depositAmount| \\ \verb|token| from \verb|msg.sender| to \verb|this|. };
+    \path (verifyAllowance) edge[->] node[pos=0.5,right] {Yes} (attemptTransfer);
+
+    \node (verifyTransfer) [question,below=of attemptTransfer] {Was the transfer successful?};
+    \path (attemptTransfer) edge[->] (verifyTransfer);
+    \node (revert_e14) [action,align=left,right=of verifyTransfer] {Revert with reason \\ string \verb|"e14"|};
+    \path (verifyTransfer) edge[->] node[pos=0.5,above] {No} (revert_e14);
+    \node (return) [action,below=of verifyTransfer] {Return};
+    \path (verifyTransfer) edge[->] node[pos=0.5,right] {Yes} (return);
+
+    \end{tikzpicture}
+
+    \verb|this.serviceFeeRate| is a property of the CommutoSwap contract of type \verb|uint256|,
+    expressed as a percentage times one hundred, of the amount of tokens exchanged between a buyer
+    and seller, that both the buyer and seller must pay as a service fee.
+
+    \verb|this.serviceFeeRate| is a property of the CommutoSwap contract, and is a mapping from
+    \verb|address|es to \verb|bool| values.
+    Offers to exchange a token can be created if and only if \verb|this.serviceFeeRate| maps the
+    address of the token to \verb|true|.
+
+    \verb|this.offers| is a property of the CommutoSwap contract, and is a mapping from
+    \verb|bytes16| values to \verb|Offer|s.
+
+    \verb|this.offerSettlementMethods| is a nested mapping.
+    The outer mapping maps \verb|bytes16| to inner mappings, and an inner mapping maps \verb|bytes|
+    to \verb|bool| values.
+
+    \verb|OfferOpened| is an Event with the following signature:
+    \begin{verbatim}
+    OfferOpened(bytes16 offerID, bytes interfaceId)
+    \end{verbatim}
 
 \end{document}
