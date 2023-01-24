@@ -328,4 +328,160 @@
     OfferOpened(bytes16 offerID, bytes interfaceId)
     \end{verbatim}
 
+    \subsubsection*{Taking an Offer}
+
+    An offer taker takes an existing offer by calling the \verb|takeOffer| function.
+    This function has the following signature:
+    \begin{verbatim}
+    takeOffer(bytes16 offerID, Swap newSwap)
+    \end{verbatim}
+    where \verb|offerID| is a Version-4 UUID and newSwap is a \verb|Swap| struct that is defined as
+    follows:
+    \begin{verbatim}
+    struct Swap {
+        bool isCreated;
+        bool requiresFill;
+        address maker;
+        bytes makerInterfaceId;
+        address taker;
+        bytes takerInterfaceId;
+        address stablecoin;
+        uint256 amountLowerBound;
+        uint256 amountUpperBound;
+        uint256 securityDepositAmount;
+        uint256 takenSwapAmount;
+        uint256 serviceFeeAmount;
+        uint256 serviceFeeRate;
+        SwapDirection direction;
+        bytes settlementMethod;
+        uint256 protocolVersion;
+        bool isPaymentSent;
+        bool isPaymentReceived;
+        bool hasBuyerClosed;
+        bool hasSellerClosed;
+        DisputeRaiser disputeRaiser;
+    }
+    \end{verbatim}
+    and \verb|DisputeRaiser| is an \verb|enum| that is defined as follows:
+    \begin{verbatim}
+    enum DisputeRaiser  {
+        NONE,
+        MAKER,
+        TAKER
+    }
+    \end{verbatim}
+    The meaning of these values and the use of the \verb|Swap.disputeRaiser| property will be
+    described later in this paper.
+    The properties of the \verb|Swap| struct are as follows:
+    \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
+        \hline
+        \multicolumn{3}{|c|}{Swap} \\
+        \hline
+        Property Type & Property Name & Description \\
+        \hline
+        bool & isCreated & Used by contract code to check for swap existence, will be set to true by \verb|takeOffer|. \\
+        bool & requiresFill & If the maker of this swap is the token seller, this indicates whether the seller has transferred to CommutoSwap the amount of tokens that they are selling.
+            If the maker of this swap is not the token seller, this is not used. \\
+        address & maker & Identical to \verb|Offer.maker| of the offer being taken. \\
+        bytes & makerInterfaceId & Identical to \verb|Offer.interfaceId| of the offer being taken. \\
+        address & taker & The taker's address, will be sent to \verb|msg.sender| by \verb|takeOffer|. \\
+        bytes & takerInterfaceId & An array of bytes that should be placed in the “recipient” field of
+            any message sent to the taker of this offer via Matrix. \\
+        address & stablecoin & Identical to \verb|Offer.stablecoin| of the offer being taken. \\
+        uint256 & amountLowerBound & Identical to \verb|Offer.amountLowerBound| of the offer being taken. \\
+        uint256 & amountUpperBound & Identical to \verb|Offer.amountUpperBound| of the offer being taken. \\
+        uint256 & securityDepositAmount & Identical to \verb|Offer.securityDepositAmount| of the offer being taken. \\
+        uint256 & takenSwapAmount & The exact amount of tokens that will be exchanged between the maker and the taker.
+            Must be such that \verb|amountLowerBound| $\leq$ takenSwapAmount $\leq$ \verb|amountUpperBound|. \\
+        uint256 & serviceFeeAmount & Used by contract code, will be set to \verb|Offer.serviceFeeRate| of the offer being taken $\times$ \verb|takenSwapAmount| $\div$ \verb|10000|.\\
+        uint256 & serviceFeeRate & Identical to \verb|Offer.serviceFeeRate| of the offer being taken. \\
+        SwapDirection & direction & Identical to \verb|Offer.direction| of the offer being taken. \\
+        bytes & settlementMethod & A \verb|bytes| value representing the method by which the buyer will send payment for the exchanged tokens.
+            Must be equal to one of the elements in the \verb|Offer.settlementMethods| array of the offer being taken. \\
+        uint256 & protocolVersion & Identical to \verb|Offer.protocolVersion| of the offer being taken. \\
+        bool & isPaymentSent & Indicates whether the buyer has sent payment for tokens purchased.
+            Will be set to false by \verb|takeOffer|. \\
+        bool & isPaymentReceived & Indicates whether the seller has received payment for tokens sold.
+            Will be set to false by \verb|takeOffer|. \\
+        bool & hasBuyerClosed & Indicates whether the buyer has closed the swap to reclaim their security deposit (and unused service fee amount, if they are the maker).
+            Will be set to false by \verb|takeOffer|. \\
+        bool & hasSellerClosed & Indicates whether the seller has closed the swap to reclaim their security deposit (and unused service fee amount, if they are the maker).
+            Will be set to false by \verb|takeOffer|. \\
+        DisputeRaiser & disputeRaiser & Indicates whether the buyer, seller, or neither has raised a dispute during the swap process.
+            Will be set to \verb|NONE| by \verb|takeOffer|. \\
+        \hline
+    \end{longtable}
+
+    When called, \verb|takeOffer| does the following:
+
+    \begin{tikzpicture}[
+        question/.style={
+            rectangle, thin, draw = black!100, color = black, font = \itshape
+        },
+        action/.style={
+            rectangle, thin, draw = gray!100, color = gray, font = \itshape
+        },
+    ]
+        \node(isCreated) [question,align=left] { Does an \verb|Offer| with the specified ID exist?};
+        \node (revert_e15) [action,align=left,right=of isCreated] { Revert with reason string \verb|"e15"| };
+        \path (isCreated) edge[->] node[pos=0.5,above] {No} (revert_e15);
+
+        \node (sufficientAmount) [question,align=left,below=of isCreated] { Does a \verb|Swap| with the specified ID already exist? };
+        \path (isCreated) edge[->] node[pos=0.5,right] {Yes} (sufficientAmount);
+        \node (revert_e20) [action,align=left,right=of sufficientAmount] { Revert with reason string \verb|"e20"| };
+        \path (sufficientAmount) edge[->] node[pos=0.5,above] {Yes} (revert_e20);
+
+        \node (matchingMakerID) [question,align=left,below=of sufficientAmount] { Do the sha256 hashes of the \verb|Offer.maker| property of the corresponding offer and \verb|Swap.maker| match? };
+        \path (sufficientAmount) edge[->] node[pos=0.5,right] {No} (matchingMakerID);
+        \node (revert_e21) [action,align=left,right=of matchingMakerID] { Revert with reason string \verb|"e21"| };
+        \path (matchingMakerID) edge[->] node[pos=0.5,above] {No} (revert_e21);
+
+        \node (matchingProperties1) [question,align=left,below=of matchingMakerID] {
+            Do each of the values of each of the following \verb|Swap| properties equal the
+            corresponding values in the corresponding \verb|Offer|? \\
+            \verb|stablecoin|, \verb|amountUpperBound|, \verb|securityDepositAmount|
+        };
+        \path (matchingMakerID) edge[->] node[pos=0.5,right] {Yes} (matchingProperties1);
+        \node (revert_proper1) [action,align=left,right=of matchingProperties1] { Revert with proper reason string };
+        \path (matchingProperties1) edge[->] node[pos=0.5,above] {No} (revert_proper1);
+
+        \node (amountInRange) [question,align=left,below=of matchingProperties1] { Is \verb|amountLowerBound|$\leq$\verb|takenSwapAmount|$\leq$\verb|amountUpperBound|? };
+        \path (matchingProperties1) edge[->] node[pos=0.5,right] {Yes} (amountInRange);
+        \node (revert_e26_e27) [action,align=left,right=of amountInRange] { Revert with reason string \verb|"e26"| if \verb|amountLowerBound|>\verb|takenSwapAmount|, \verb|"e27"| if \verb|amountUpperBound|<\verb|takenSwapAmount| };
+        \path (amountInRange) edge[->] node[pos=0.5,above] {No} (revert_e26_e27);
+
+        \node (matchingDirection) [question,align=left,below=of amountInRange] { Does \verb|direction| match that of the corresponding offer? };
+        \path (amountInRange) edge[->] node[pos=0.5,right] {Yes} (matchingDirection);
+        \node (revert_e28) [action,align=left,right=of matchingDirection] { Revert with reason string \verb|"e28"| };
+        \path (matchingDirection) edge[->] node[pos=0.5,above] {No} (revert_e28);
+
+        \node (settlementMethodSupported) [question,align=left,below=of matchingDirection] { Is \verb|self.offerSettlementMethods[offerID][newSwap.settlementMethod]| true? };
+        \path (matchingDirection) edge[->] node[pos=0.5,right] {Yes} (settlementMethodSupported);
+        \node (revert_e30) [action,align=left,right=of settlementMethodSupported] { Revert with reason string \verb|"e30"| };
+        \path (settlementMethodSupported) edge[->] node[pos=0.5,above] {No} (revert_e30);
+
+        \node (calculateAmounts) [action,align=left,below=of settlementMethodSupported] {
+            Let \verb|newSwap.serviceFeeAmount| = \verb|serviceFeeRate| $\times$ \verb|takenSwapAmount| $\div$ \verb|10000|. \\
+            If \verb|direction| is \verb|SELL|, let \verb|totalAmount| = \verb|securityDepositAmount| $+$ \verb|serviceFeeAmount|, and let \verb|requiresFill| = \verb|true|. \\
+            Otherwise, \verb|direction| is \verb|BUY|, and let \verb|totalAmount| = \verb|takenSwapAmount| + \verb|securityDepositAmount| + \verb|serviceFeeAmount|, and let \verb|requiresFill| = \verb|false|. \\
+        };
+        \path (settlementMethodSupported) edge[->] node[pos=0.5,right] {Yes} (calculateAmounts);
+
+        \node (setValues) [action,align=left,below=of calculateAmounts] {
+            Set \verb|isCreated| = \verb|true|, \verb|taker| = \verb|msg.sender|,
+            \verb|isTaken| property of corresponding offer = \verb|true|, \\
+            \verb|serviceFeeRate| = \verb|serviceFeeRate| property of corresponding offer, \\
+            \verb|isPaymentSent| = \verb|false|, \verb|isPaymentReceived| = \verb|false|, \verb|hasBuyerClosed| = \verb|false|, \verb|hasSellerClosed = false|, \\
+            \verb|disputeRaiser| = \verb|DisputeRaiser.NONE|, and \verb|this.swaps[offerID]| = \verb|newSwap|.
+        };
+        \path (calculateAmounts) edge[->] (setValues);
+        \node (valuesNote) [align=left,left=1mm of setValues] {\verb|this.swaps| \\ will be explained later \\ in this document.};
+
+        \node (emitEvent) [action,below=of setValues] {
+            Emit \verb|OfferTaken| with \verb|offerID| and \verb|takerInterfaceID|
+        };
+        \path (setValues) edge[->] (emitEvent);
+
+    \end{tikzpicture}
+
 \end{document}
