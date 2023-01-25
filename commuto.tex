@@ -507,4 +507,66 @@
     OfferTaken(bytes16 offerID, bytes takerInterfaceId)
     \end{verbatim}
 
+    \subsubsection*{Filling a Swap}
+
+    Consider the amount of tokens transferred from a user to CommutoSwap when the user is opening an offer to sell tokens.
+    Note that this amount is the sum of the security deposit and the maximum service fee amount;
+    The actual amount of tokens that the user wishes to sell is not transferred when opening such an offer.
+    Therefore, when another user takes an offer to sell tokens, the amount of tokens being sold must be transferred from the offer maker to CommutoSwap.
+    (Note that this is not necessary if the maker is offering to buy tokens, and thus this step is skilled in such cases.)
+    The maker and seller accomplishes this by calling the \verb|fillSwap| function.
+    This function has the following signature:
+    \begin{verbatim}
+        fillSwap(bytes16 swapID)
+    \end{verbatim}
+
+    When called, \verb|fillSwap| does the following:
+
+    \begin{tikzpicture}[
+        question/.style={
+            rectangle, thin, draw = black!100, color = black, font = \itshape
+        },
+        action/.style={
+            rectangle, thin, draw = gray!100, color = gray, font = \itshape
+        },
+    ]
+        \node (isCreated) [question,align=left] { Does a \verb|Swap| with the specified ID exist? };
+        \node (revert_e33) [action,align=left,right=of isCreated] { Revert with reason string \verb|"e33"| };
+        \path (isCreated) edge[->] node[pos=0.5,above] {No} (revert_e33);
+
+        \node (requiresFilling) [question,align=left,below=of isCreated] { Is \verb|requiresFill| = \verb|true| and \verb|direction| = \verb|SELL|? };
+        \path (isCreated) edge[->] node[pos=0.5,right] {Yes} (requiresFilling);
+        \node (revert_e18) [action,align=left,right=of requiresFilling] { Revert with reason string \verb|"e18"| };
+        \path (requiresFilling) edge[->] node[pos=0.5,above] {No} (revert_e18);
+
+        \node (isMaker) [question,align=left,below=of requiresFilling] { Does the user's address equal \verb|maker| };
+        \path (requiresFilling) edge[->] node[pos=0.5,right] {Yes} (isMaker);
+        \node (revert_e47) [action,align=left,right=of isMaker] { Revert with reason string \verb|"e47"| };
+        \path (isMaker) edge[->] node[pos=0.5,above] {No} (revert_e47);
+
+        \node (setAndEmit) [action,align=left,below=of isMaker] { Set \verb|requiresFill| = \verb|false| and emit \verb|SwapFilled| with \verb|swapID| };
+        \path (isMaker) edge[->] node[pos=0.5,right] {Yes} (setAndEmit);
+
+        \node (verifyAllowance) [question, below=of setAndEmit] { Is current \verb|token| allowance $>=$ \verb|takenSwapAmount|? };
+        \path (setAndEmit) edge[->] (verifyAllowance);
+        \node (revert_e13) [action,align=left,right=of verifyAllowance] {Revert with reason \\ string \verb|"e13"|};
+        \path (verifyAllowance) edge[->] node[pos=0.5,above] {No} (revert_e13);
+
+        \node (attemptTransfer) [action,align=left,below=of verifyAllowance] { Attempt to transfer \verb|takenSwapAmount| \verb|token| from \verb|msg.sender| to \verb|this|. };
+        \path (verifyAllowance) edge[->] node[pos=0.5,right] {Yes}  (attemptTransfer);
+
+        \node (verifyTransfer) [question,below=of attemptTransfer] {Was the transfer successful?};
+        \path (attemptTransfer) edge[->] (verifyTransfer);
+        \node (revert_e14) [action,align=left,right=of verifyTransfer] {Revert with reason \\ string \verb|"e14"|};
+        \path (verifyTransfer) edge[->] node[pos=0.5,above] {No} (revert_e14);
+        \node (return) [action,below=of verifyTransfer] {Return};
+        \path (verifyTransfer) edge[->] node[pos=0.5,right] {Yes} (return);
+
+    \end{tikzpicture}
+
+    \verb|SwapFilled| is an Event with the following signature:
+    \begin{verbatim}
+    SwapFilled(bytes16 swapID)
+    \end{verbatim}
+
 \end{document}
