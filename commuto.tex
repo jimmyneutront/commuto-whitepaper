@@ -422,7 +422,7 @@
             rectangle, thin, draw = gray!100, color = gray, font = \itshape
         },
     ]
-        \node(isCreated) [question,align=left] { Does an \verb|Offer| with the specified ID exist?};
+        \node (isCreated) [question,align=left] { Does an \verb|Offer| with the specified ID exist?};
         \node (revert_e15) [action,align=left,right=of isCreated] { Revert with reason string \verb|"e15"| };
         \path (isCreated) edge[->] node[pos=0.5,above] {No} (revert_e15);
 
@@ -478,10 +478,33 @@
         \node (valuesNote) [align=left,left=1mm of setValues] {\verb|this.swaps| \\ will be explained later \\ in this document.};
 
         \node (emitEvent) [action,below=of setValues] {
-            Emit \verb|OfferTaken| with \verb|offerID| and \verb|takerInterfaceID|
+            Emit \verb|OfferTaken| with \verb|offerID| and \verb|takerInterfaceId|
         };
         \path (setValues) edge[->] (emitEvent);
 
+        \node (verifyAllowance) [question, below=of emitEvent] { Is current \verb|token| allowance $>=$ \verb|totalAmount|? };
+        \path (emitEvent) edge[->] (verifyAllowance);
+        \node (revert_e13) [action,align=left,right=of verifyAllowance] {Revert with reason \\ string \verb|"e13"|};
+        \path (verifyAllowance) edge[->] node[pos=0.5,above] {No} (revert_e13);
+
+        \node (attemptTransfer) [action,align=left,below=of verifyAllowance] { Attempt to transfer \verb|totalAmount| \verb|token| from \verb|msg.sender| to \verb|this|. };
+        \path (verifyAllowance) edge[->] node[pos=0.5,right] {Yes}  (attemptTransfer);
+
+        \node (verifyTransfer) [question,below=of attemptTransfer] {Was the transfer successful?};
+        \path (attemptTransfer) edge[->] (verifyTransfer);
+        \node (revert_e14) [action,align=left,right=of verifyTransfer] {Revert with reason \\ string \verb|"e14"|};
+        \path (verifyTransfer) edge[->] node[pos=0.5,above] {No} (revert_e14);
+        \node (return) [action,below=of verifyTransfer] {Return};
+        \path (verifyTransfer) edge[->] node[pos=0.5,right] {Yes} (return);
+
     \end{tikzpicture}
+
+    \verb|this.swaps| is a property of the CommutoSwap contract, and is a mapping from
+    \verb|bytes16| values to \verb|Swap|s.
+
+    \verb|OfferTaken| is an Event with the following signature:
+    \begin{verbatim}
+    OfferTaken(bytes16 offerID, bytes takerInterfaceId)
+    \end{verbatim}
 
 \end{document}
