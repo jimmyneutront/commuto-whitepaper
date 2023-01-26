@@ -569,4 +569,115 @@
     SwapFilled(bytes16 swapID)
     \end{verbatim}
 
+    \subsubsection*{Sending Payment}
+
+    Now the token seller and buyer must exchange whatever information is necessary for the buyer to send payment to the seller.
+    This will be accomplished via Matrix, and this process is described later in this document.
+    Once this information is exchanged, the token buyer must send payment to the seller using the provided details.
+    Then the buyer notifies the seller that this has been done by calling the \verb|reportPaymentSent| function.
+    This function has the following signature:
+    \begin{verbatim}
+        reportPaymentSent(bytes16 swapID)
+    \end{verbatim}
+
+    When called, \verb|reportPaymentSent| does the following:
+
+    \begin{tikzpicture}[
+        question/.style={
+            rectangle, thin, draw = black!100, color = black, font = \itshape
+        },
+        action/.style={
+            rectangle, thin, draw = gray!100, color = gray, font = \itshape
+        },
+    ]
+        \node (isCreated) [question,align=left] { Does a \verb|Swap| with the specified ID exist? };
+        \node (revert_e33) [action,align=left,right=of isCreated] { Revert with reason string \verb|"e33"| };
+        \path (isCreated) edge[->] node[pos=0.5,above] {No} (revert_e33);
+
+        \node (requiresFilling) [question,align=left,below=of isCreated] { Is \verb|requiresFill| false? };
+        \path (isCreated) edge[->] node[pos=0.5,right] {Yes} (requiresFilling);
+        \node (revert_e48) [action,align=left,right=of requiresFilling] { Revert with reason string \verb|"e48"| };
+        \path (requiresFilling) edge[->] node[pos=0.5,above] {No} (revert_e48);
+
+        \node (isPaymentSent) [question,align=left,below=of requiresFilling] { Is \verb|isPaymentSent| false? };
+        \path (requiresFilling) edge[->] node[pos=0.5,right] {Yes} (isPaymentSent);
+        \node (revert_e34) [action,align=left,right=of isPaymentSent] { Revert with reason string \verb|"e34"| };
+        \path (isPaymentSent) edge[->] node[pos=0.5,above] {No} (revert_e34);
+
+        \node (isUserBuyer) [question,align=left,below=of isPaymentSent] { If \verb|direction| = \verb|BUY|, is the caller the maker? Otherwise, (\verb|direction| = \verb|SELL|) is the caller the taker? };
+        \path (isPaymentSent) edge[->] node[pos=0.5,right] {Yes} (isUserBuyer);
+        \node (revert_e35) [action,align=left,right=of isUserBuyer] { Revert with reason string \verb|"e35"| };
+        \path (isUserBuyer) edge[->] node[pos=0.5,above] {No} (revert_e35);
+
+        \node (isDisputed) [question,align=left,below=of isUserBuyer] { Is \verb|disputeRaiser| = \verb|NONE|? };
+        \path (isUserBuyer) edge[->] node[pos=0.5,right] {Yes} (isDisputed);
+        \node (revert_e50) [action,align=left,right=of isDisputed] { Revert with reason string \verb|"e50"| };
+        \path (isDisputed) edge[->] node[pos=0.5,above] {No} (revert_e50);
+
+        \node (setAndEmit) [action,align=left,below=of isDisputed] { Set \verb|isPaymentSent| = \verb|true| and emit \verb|PaymentSent| with \verb|swapID| };
+        \path (isDisputed) edge[->] node[pos=0.5,right] {Yes} (setAndEmit);
+        \node (return) [action, below=of setAndEmit] {Return};
+        \path (setAndEmit) edge[->] (return);
+
+    \end{tikzpicture}
+
+    \verb|PaymentSent| is an Event with the following signature:
+    \begin{verbatim}
+    PaymentSent(bytes16 swapID)
+    \end{verbatim}
+
+    \subsubsection*{Receiving Payment}
+
+    Once the token seller receives the payment that has been sent by the buyer, the seller must notify the buyer by calling the \verb|reportPaymentReceived| function.
+    This function has the following signature:
+    \begin{verbatim}
+        reportPaymentReceived(bytes16 swapID)
+    \end{verbatim}
+
+    When called, \verb|reportPaymentReceived| does the following:
+
+    \begin{tikzpicture}[
+        question/.style={
+            rectangle, thin, draw = black!100, color = black, font = \itshape
+        },
+        action/.style={
+            rectangle, thin, draw = gray!100, color = gray, font = \itshape
+        },
+    ]
+        \node (isCreated) [question,align=left] { Does a \verb|Swap| with the specified ID exist? };
+        \node (revert_e33) [action,align=left,right=of isCreated] { Revert with reason string \verb|"e33"| };
+        \path (isCreated) edge[->] node[pos=0.5,above] {No} (revert_e33);
+
+        \node (isPaymentSent) [question,align=left,below=of isCreated] { Is \verb|isPaymentSent| true? };
+        \path (isCreated) edge[->] node[pos=0.5,right] {Yes} (requiresFilling);
+        \node (revert_e37) [action,align=left,right=of isPaymentSent] { Revert with reason string \verb|"e37"| };
+        \path (isPaymentSent) edge[->] node[pos=0.5,above] {No} (revert_e37);
+
+        \node (isPaymentReceived) [question,align=left,below=of requiresFilling] { Is \verb|isPaymentReceived| false? };
+        \path (isPaymentSent) edge[->] node[pos=0.5,right] {Yes} (isPaymentReceived);
+        \node (revert_e38) [action,align=left,right=of isPaymentReceived] { Revert with reason string \verb|"e38"| };
+        \path (isPaymentReceived) edge[->] node[pos=0.5,above] {No} (revert_e38);
+
+        \node (isUserSeller) [question,align=left,below=of isPaymentSent] { If \verb|direction| = \verb|BUY|, is the caller the taker? Otherwise, (\verb|direction| = \verb|SELL|) is the caller the maker? };
+        \path (isPaymentReceived) edge[->] node[pos=0.5,right] {Yes} (isUserSeller);
+        \node (revert_e39) [action,align=left,right=of isUserSeller] { Revert with reason string \verb|"e39"| };
+        \path (isUserSeller) edge[->] node[pos=0.5,above] {No} (revert_e39);
+
+        \node (isDisputed) [question,align=left,below=of isUserSeller] { Is \verb|disputeRaiser| = \verb|NONE|? };
+        \path (isUserSeller) edge[->] node[pos=0.5,right] {Yes} (isDisputed);
+        \node (revert_e51) [action,align=left,right=of isDisputed] { Revert with reason string \verb|"e51"| };
+        \path (isDisputed) edge[->] node[pos=0.5,above] {No} (revert_e51);
+
+        \node (setAndEmit) [action,align=left,below=of isDisputed] { Set \verb|isPaymentReceived| = \verb|true| and emit \verb|PaymentReceived| with \verb|swapID| };
+        \path (isDisputed) edge[->] node[pos=0.5,right] {Yes} (setAndEmit);
+        \node (return) [action, below=of setAndEmit] {Return};
+        \path (setAndEmit) edge[->] (return);
+
+    \end{tikzpicture}
+
+    \verb|PaymentSent| is an Event with the following signature:
+    \begin{verbatim}
+        PaymentReceived(bytes16 swapID)
+    \end{verbatim}
+
 \end{document}
