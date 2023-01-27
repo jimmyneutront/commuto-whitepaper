@@ -553,7 +553,7 @@
         \path (verifyAllowance) edge[->] node[pos=0.5,above] {No} (revert_e13);
 
         \node (attemptTransfer) [action,align=left,below=of verifyAllowance] { Attempt to transfer \verb|takenSwapAmount| \verb|token| from \verb|msg.sender| to \verb|this|. };
-        \path (verifyAllowance) edge[->] node[pos=0.5,right] {Yes}  (attemptTransfer);
+        \path (verifyAllowance) edge[->] node[pos=0.5,right] {Yes} (attemptTransfer);
 
         \node (verifyTransfer) [question,below=of attemptTransfer] {Was the transfer successful?};
         \path (attemptTransfer) edge[->] (verifyTransfer);
@@ -679,5 +679,92 @@
     \begin{verbatim}
         PaymentReceived(bytes16 swapID)
     \end{verbatim}
+
+    \subsubsection*{Closing the Swap}
+
+    Now that the token seller has received payment from the buyer, both the buyer and the seller must close the swap by calling the \verb|closeSwap| function.
+    This function has the following signature:
+    \begin{verbatim}
+        closeSwap(bytes16 swapID)
+    \end{verbatim}
+
+    When called, \verb|closeSwap| does the following:
+
+    \begin{tikzpicture}[
+        question/.style={
+            rectangle, thin, draw = black!100, color = black, font = \itshape
+        },
+        action/.style={
+            rectangle, thin, draw = gray!100, color = gray, font = \itshape
+        },
+    ]
+        \node (isCreated) [question,align=left] { Does a \verb|Swap| with the specified ID exist? };
+        \node (revert_e33) [action,align=left,right=of isCreated] { Revert with reason string \verb|"e33"| };
+        \path (isCreated) edge[->] node[pos=0.5,above] {No} (revert_e33);
+
+        \node (isPaymentReceived) [question,align=left,below=of isCreated] { Is \verb|isPaymentReceived| true? };
+        \path (isCreated) edge[->] node[pos=0.5,right] {Yes} (requiresFilling);
+        \node (revert_e40) [action,align=left,right=of isPaymentReceived] { Revert with reason string \verb|"e40"| };
+        \path (isPaymentReceived) edge[->] node[pos=0.5,above] {No} (revert_e40);
+
+        \node (isDisputed) [question,align=left,below=of isPaymentReceived] { Is \verb|disputeRaiser| = \verb|NONE|? };
+        \path (isPaymentReceived) edge[->] node[pos=0.5,right] {Yes} (isDisputed);
+        \node (revert_e52) [action,align=left,right=of isDisputed] { Revert with reason string \verb|"e52"| };
+        \path (isDisputed) edge[->] node[pos=0.5,above] {No} (revert_e52);
+
+        \node (isBuyerAndTaker) [question,align=left,below=of isDisputed] { Is the caller the buyer and taker? };
+        \path (isDisputed) edge[->] node[pos=0.5,right] {Yes} (isBuyerAndTaker);
+        \node (hasBuyerAndTakerClosed) [question,align=left,right=of isBuyerAndTaker] { Has the buyer already closed the swap? };
+        \path (isBuyerAndTaker) edge[->] node[pos=0.5,above] {Yes} (hasBuyerAndTakerClosed);
+        \node (revert_e41_BAT) [action,align=left,below=of hasBuyerAndTakerClosed] { Revert with reason string \verb|"e41"| };
+        \path (hasBuyerAndTakerClosed) edge[->] node[pos=0.5,right] {Yes} (revert_e41_BAT);
+        \node (calcSetEmitAttemptForBuyerAndTaker) [action,align=left,right=of hasBuyerAndTakerClosed] { Let \verb|returnAmount| = \verb|securityDepositAmount| $+$ \verb|takenSwapAmount|, set \verb|hasBuyerClosed| = \verb|true|, and emit \verb|BuyerClosed| with \verb|swapID|. Then attempt to transfer \verb|returnAmount| of \verb|stablecoin| to \verb|taker|. };
+        \path (hasBuyerAndTakerClosed) edge[->] node[pos=0.5,above] {No} (calcSetEmitAttemptForBuyerAndTaker);
+
+        \node (isBuyerAndMaker) [question,align=left,below=25mm of isBuyerAndTaker] { Is the caller the buyer and maker? };
+        \path (isBuyerAndTaker) edge[->] node[pos=0.5,right] {No} (isBuyerAndMaker);
+        \node (hasBuyerAndMakerClosed) [question,align=left,right=of isBuyerAndMaker] { Has the buyer already closed the swap? };
+        \path (isBuyerAndMaker) edge[->] node[pos=0.5,above] {Yes} (hasBuyerAndMakerClosed);
+        \node (revert_e41_BAM) [action,align=left,below=of hasBuyerAndMakerClosed] { Revert with reason string \verb|"e41"| };
+        \path (hasBuyerAndMakerClosed) edge[->] node[pos=0.5,right] {Yes} (revert_e41_BAM);
+        \node (calcSetEmitAttemptForBuyerAndMaker) [action,align=left,right=of hasBuyerAndMakerClosed] { Let \verb|serviceFeeAmountUpperBound| = \verb|serviceFeeRate| $\times$ \verb|amountUpperBound| $\div 10000$, \verb|returnAmount| = \verb|securityDepositAmount| $+$ \verb|takenSwapAmount| $+$ \verb|serviceFeeAmountUpperBound| $-$ \verb|serviceFeeAmount|, set \verb|hasBuyerClosed| = \verb|true|, and emit \verb|BuyerClosed| with \verb|swapID|. Then attempt to transfer \verb|returnAmount| of \verb|stablecoin| to \verb|maker|. };
+        \path (hasBuyerAndMakerClosed) edge[->] node[pos=0.5,above] {No} (calcSetEmitAttemptForBuyerAndMaker);
+
+        \node (isSellerAndTaker) [question,align=left,below=25mm of isBuyerAndMaker] { Is the caller the seller and taker? };
+        \path (isBuyerAndMaker) edge[->] node[pos=0.5,right] {No} (isSellerAndTaker);
+        \node (hasSellerAndTakerClosed) [question,align=left,right=of isSellerAndTaker] { Has the seller already closed the swap? };
+        \path (isSellerAndTaker) edge[->] node[pos=0.5,above] {Yes} (hasSellerAndTakerClosed);
+        \node (revert_e43_SAT) [action,align=left,below=of hasSellerAndTakerClosed] { Revert with reason string \verb|"e43"| };
+        \path (hasSellerAndTakerClosed) edge[->] node[pos=0.5,right] {Yes} (revert_e43_SAT);
+        \node (calcSetEmitAttemptForSellerAndTaker) [action,align=left,right=of hasSellerAndTakerClosed] { Let \verb|returnAmount| = \verb|securityDepositAmount|, set \verb|hasSellerClosed| = \verb|true|, and emit \verb|SellerClosed| with \verb|swapID|. Then attempt to transfer \verb|returnAmount| of \verb|stablecoin| to \verb|taker|. };
+        \path (hasSellerAndTakerClosed) edge[->] node[pos=0.5,above] {No} (calcSetEmitAttemptForSellerAndTaker);
+
+        \node (isSellerAndMaker) [question,align=left,below=25mm of isSellerAndTaker] { Is the caller the seller and maker? };
+        \path (isSellerAndTaker) edge[->] node[pos=0.5,right] {No} (isSellerAndMaker);
+        \node (hasSellerAndMakerClosed) [question,align=left,right=of isSellerAndMaker] { Has the seller already closed the swap? };
+        \path (isSellerAndMaker) edge[->] node[pos=0.5,above] {Yes} (hasSellerAndMakerClosed);
+        \node (revert_e43_SAM) [action,align=left,below=of hasSellerAndMakerClosed] { Revert with reason string \verb|"e43"| };
+        \path (hasSellerAndMakerClosed) edge[->] node[pos=0.5,right] {Yes} (revert_e43_SAM);
+        \node (calcSetEmitAttemptForSellerAndMaker) [action,align=left,right=of hasSellerAndMakerClosed] { Let \verb|serviceFeeAmountUpperBound| = \verb|serviceFeeRate| $\times$ \verb|amountUpperBound| $\div 10000$, \verb|returnAmount| = \verb|securityDepositAmount| $+$ \verb|serviceFeeAmountUpperBound| $-$ \verb|serviceFeeAmount|, set \verb|hasSellerClosed| = \verb|true|, and emit \verb|SellerClosed| with \verb|swapID|. Then attempt to transfer \verb|returnAmount| of \verb|stablecoin| to \verb|maker|. };
+        \path (hasSellerAndMakerClosed) edge[->] node[pos=0.5,above] {No} (calcSetEmitAttemptForSellerAndMaker);
+
+        \node (verifyTransfer) [question, below=25mm of isSellerAndMaker] {Was the transfer successful?};
+        \node (revert_e14) [action,align=left,right=of verifyTransfer] {Revert with reason \\ string \verb|"e14"|};
+        %TODO: path from transfer attempt nodes to verifyTransfer here
+        \path (verifyTransfer) edge[->] node[pos=0.5,above] {No} (revert_e14);
+
+        \node (attemptServiceFeeTransfer) [action,align=left,below=of verifyTransfer] { Attempt to transfer \verb|serviceFeeAmount| \verb|token| to \verb|this.primaryTimelock|. };
+        \node (primaryTimelockNote) [align=left,right=of attemptServiceFeeTransfer] { \verb|this.primaryTimelock| will be explained later in this document. };
+        \path (verifyTransfer) edge[->] node[pos=0.5,right] {Yes} (attemptServiceFeeTransfer);
+
+        \node (verifyServiceFeeTransfer) [question,below=of attemptServiceFeeTransfer] {Was the transfer successful?};
+        \path (attemptServiceFeeTransfer) edge[->] (verifyServiceFeeTransfer);
+        \node (revert_e42) [action,align=left,right=of verifyServiceFeeTransfer] {Revert with reason string \verb|"e42"|};
+        \path (verifyServiceFeeTransfer) edge[->] node[pos=0.5,above] {No} (revert_e42);
+
+        \node (return) [action,below=of verifyServiceFeeTransfer] {Return};
+        \path (verifyServiceFeeTransfer) edge[->] node[pos=0.5,right] {Yes} (return);
+
+    \end{tikzpicture}
 
 \end{document}
