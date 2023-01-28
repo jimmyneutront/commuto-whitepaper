@@ -24,14 +24,17 @@
     \maketitle
 
     \begin{abstract}
-    Commuto is a collection of software allowing private, noncustodial, censorship resistant
-    exchange of national currencies and tokens adopting the ERC20\cite{ERC20} standard on
-    Ethereum Virtual Machine\cite{Ethereum} compatible blockchains.
+    This document introduces Commuto, a new type of exchange for traditional currencies and virtual
+    currencies adopting the ERC20 token standard, built on the Ethereum Virtual Machine.
     The Commuto Protocol's name comes from the Latin word ``commuto'', meaning ``I exchange'' or ``I
     barter.''
     \end{abstract}
 
     \section*{Introduction}
+
+    Commuto is a tool for private, permissionless, auditable, censorship resistant exchange of
+    national currencies and tokens adopting the ERC20\cite{ERC20} standard on Ethereum Virtual
+    Machine\cite{Ethereum} compatible blockchains.
 
     Commuto is primarily composed of two software components: a set of smart contracts deployed on
     an EVM-compatible blockchain, and a set of applications that can interact both with said
@@ -39,33 +42,36 @@
     The smart contracts will be referred to henceforth as ``Commuto Core'' and said applications
     will be referred to as ``Commuto Interfaces''.
     An intention expressed by a Commuto user to buy or sell a particular ERC20 token in exchange for
-    one or more particular national currency is known as an ``offer''.
-    An exchange of national currency and ERC20 tokens between two users is known as a ``swap''.
+    one out of a list of national currencies is known as an ``offer''.
+    An exchange of a particular national currency and a specific amount of a particular ERC20 token
+    between two users, a maker and a taker, is known as a ``swap''.
 
     Because Commuto allows users to exchange national currency, certain pieces of private
-    information (such as bank account details and addresses) must be exchanged between users.
+    information (such as bank account details and addresses) must be privately exchanged between
+    users.
     Additionally, users should be able to communicate with each other in a convenient manner, in
     order to resolve any problems that may arise during the swap process.
-    While an EVM blockchain (on which Commuto Core contracts are deployed could) theoretically
-    be used to exchange such information by storing it (even if only temporarily) on-chain, the
-    relatively high cost of storage on such blockchains makes this approach unfeasible.
+    While an EVM blockchain could theoretically be used to exchange such information by storing it
+    (even if only temporarily) on-chain, the relatively high cost of storage on such blockchains
+    makes this approach unfeasible.
     Additionally, many users are likely accustomed to instant messaging applications that
     deliver messages in less than a second.
-    The relatively longer time required to incorporate a new transaction into a such blockchain is
-    yet another reason why an EVM-blockchain-based communication system between users is not
+    Additionally, the relatively longer time required to incorporate new transactions into such an
+    EVM blockchain would act as a bottleneck to such a blockchain-based messaging system.
+    This is yet another reason why EVM-blockchain-based communication between users is not
     practical.
     Therefore, Commuto Interfaces use Matrix\cite{Matrix} to reliably exchange information in a
     decentralized, censorship-resistant manner.
     Matrix is a network of nodes running software conforming to the Matrix
-    Specification\cite{MatrixSpec}, which defines a set of open APIs for decentralised
+    Specification\cite{MatrixSpec}, which "defines a set of open APIs for decentralised
     communication, suitable for securely publishing, persisting and subscribing to data over a
-    global open federation of servers with no single point of control.
+    global open federation of servers with no single point of control."
     A Matrix Room is a directed acyclic graph of Events, the ordering of which is the chronological
-    ordering of Events in the room.
-    Any node may maintain a copy of any such Room, and nods may add new elements to Rooms.
+    ordering of Events in the Room.
+    Any node may maintain a copy of any such Room, and nodes may add new elements to Rooms.
     Events are simply JSON objects with zero or more ``parent'' events, which are chronological
     predecessors in the event graph.
-    Nodes use state resolution algorithms and communicate with one another using federation
+    Network nodes use state resolution algorithms and communicate with one another using federation
     algorithms (as defined in the specification) in order to maintain persistent,
     eventually-consistent synchronization of Room state across all nodes in the network.
     Therefore, no single node (referred to in the Matrix Specification and henceforth in this paper
@@ -77,7 +83,7 @@
 
     Commuto Core is composed of smart contracts that enable swaps between offer makers and offer
     takers, and also allow the resolution of disputes between makers and takers.
-    (For example a dispute may arise when a token buyer claims to have sent payment to the seller,
+    (For example, a dispute may arise when a token buyer claims to have sent payment to the seller,
     but the seller claims that they have not received this payment.)
     We begin by considering the operations of the CommutoSwap smart contract, which enables the
     swapping process.
@@ -89,8 +95,8 @@
 
     \subsection*{CommutoSwap}
 
-    The CommutoSwap smart contract can be best understood by considering the steps of the swap
-    process, so we describe it in this context.
+    The CommutoSwap smart contract can be best understood by considering the way it is used step by
+    step through the swap process, so we describe it in this context.
     Note that, as described in the introduction, the swap process includes the exchange of
     information via Matrix.
     However, because this section focuses on the operations of CommutoSwap, we temporarily omit the
@@ -108,22 +114,38 @@
     \end{verbatim}
     where \verb|offerID| is a Version-4 UUID\cite{UUID}, and \verb|newOffer| is an \verb|Offer|
     struct that is defined as follows:
-    \begin{verbatim}
-    struct Offer {
-        bool isCreated
-        bool isTaken
-        address maker
-        bytes interfaceId
-        address stablecoin
-        uint256 amountLowerBound
-        uint256 amountUpperBound
-        uint256 securityDepositAmount
-        uint256 serviceFeeRate
-        SwapDirection direction
-        bytes[] settlementMethods
-        uint256 protocolVersion }
-    \end{verbatim}
-    and \verb|SwapDirection| is an \verb|enum| that is defined as follows:
+    \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
+        \hline
+        \multicolumn{3}{|c|}{Offer} \\
+        \hline
+        Property Type & Property Name & Description \\
+        \hline
+        bool & isCreated & Used by contract code to check for offer existence, will be set to true
+        by \verb|openOffer|. \\
+        bool & isTaken & Used by contract code to check whether an offer is taken, will be set to
+        false by \verb|openOffer|. \\
+        address & maker & The maker's address, will be sent to \verb|msg.sender| by \verb|openOffer|. \\
+        bytes & interfaceId & An array of bytes that should be placed in the ``recipient'' field of any
+        message sent to the maker of this offer via Matrix. \\
+        address & stablecoin & The contract address of the token that the offer maker is offering to
+        swap. \\
+        uint256 & amountLowerBound & The lower bound on the range of token amounts that the maker is
+        willing to swap. \\
+        uint256 & amountUpperBound & The upper bound on the range of token amounts that the maker is
+        willing to swap. \\
+        uint256 & securityDepositAmount & The token amount to be used as a security deposit, which must
+        not be less than ten percent of amountUpperBound. \\
+        uint256 & serviceFeeRate & The percentage times 100 of the amount of swapped tokens that the
+        maker and taker must pay as a service fee. \\
+        SwapDirection & direction & Indicates whether the maker is offering to buy tokens or sell
+        tokens. \\
+        bytes[] & settlementMethods & An array of \verb|bytes|, each one representing a method by which
+        the maker is willing to send/receive payment for tokens. \\
+        uint256 & protocolVersion & A number optionally describing which version of the Commuto
+        Interface software was used to open this offer. \\
+        \hline
+    \end{longtable}
+    \verb|SwapDirection| is an \verb|enum| that is defined as follows:
     \begin{verbatim}
     enum SwapDirection {
         BUY
@@ -131,43 +153,13 @@
     }
     \end{verbatim}
     A \verb|SwapDirection.BUY| value indicates that the maker of the Offer is a buyer, as previously
-    defined, and \verb|SwapDirection.SELL| is similar.
-    The properties of the \verb|Offer| struct are as follows: \\
+    defined, and \verb|SwapDirection.SELL| indicates that the maker of the Offer is a seller, as
+    previously defined.
 
-    \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
-    \hline
-    \multicolumn{3}{|c|}{Offer} \\
-    \hline
-    Property Type & Property Name & Description \\
-    \hline
-    bool & isCreated & Used by contract code to check for offer existence, will be set to true
-    by \verb|openOffer|. \\
-    bool & isTaken & Used by contract code to check whether an offer is taken, will be set to
-    false by \verb|openOffer|. \\
-    address & maker & The maker's address, will be sent to \verb|msg.sender| by \verb|openOffer|. \\
-    bytes & interfaceId & An array of bytes that should be placed in the ``recipient'' field of any
-    message sent to the maker of this offer via Matrix. \\
-    address & stablecoin & The contract address of the token that the offer maker is offering to
-    swap. \\
-    uint256 & amountLowerBound & The lower bound on the range of token amounts that the maker is
-    willing to swap. \\
-    uint256 & amountUpperBound & The upper bound on the range of token amounts that the maker is
-    willing to swap. \\
-    uint256 & securityDepositAmount & The token amount to be used as a security deposit, which must
-    not be less than ten percent of amountUpperBound. \\
-    uint256 & serviceFeeRate & The percentage times 100 of the amount of swapped tokens that the
-    maker and taker must pay as a service fee. \\
-    SwapDirection & direction & Indicates whether the maker is offering to buy tokens or sell
-    tokens. \\
-    bytes[] & settlementMethods & An array of \verb|bytes|, each one representing a method by which
-    the maker is willing to send/receive payment for tokens. \\
-    uint256 & protocolVersion & A number optionally describing which version of the Commuto
-    Interface software was used to open this offer. \\
-        \hline
-    \end{longtable}
-
-    \pagebreak
-    When called, \verb|openOffer| does the following: \\
+    When called, \verb|openOffer| ensures that an Offer with the specified ID does not already
+    exist, validates all the data that it has been passed, transfers to itself from the maker an
+    amount of the specified token equal to the maker's security deposit amount plus the percentage
+    of the upper bound on the amount of tokens to exchange specified by \verb|this.serviceFeeRate|.
 
     \begin{tikzpicture}[
         question/.style={
@@ -311,7 +303,7 @@
     expressed as a percentage times one hundred, of the amount of tokens exchanged between a buyer
     and seller, that both the buyer and seller must pay as a service fee.
 
-    \verb|this.serviceFeeRate| is a property of the CommutoSwap contract, and is a mapping from
+    \verb|this.stablecoins| is a property of the CommutoSwap contract, and is a mapping from
     \verb|address|es to \verb|bool| values.
     Offers to exchange a token can be created if and only if \verb|this.serviceFeeRate| maps the
     address of the token to \verb|true|.
@@ -766,5 +758,15 @@
         \path (verifyServiceFeeTransfer) edge[->] node[pos=0.5,right] {Yes} (return);
 
     \end{tikzpicture}
+
+    \verb|this.primaryTimelock| is a property of the CommutoSwap contract of type \verb|address|, to
+    which all service fees are sent.
+    This property is also used by administration and governance-related code, which is described
+    later in this document.
+
+    \verb|BuyerClosed| and \verb|SellerClosed| are Events with the following signatures:
+    \begin{verbatim}
+        BuyerClosed(bytes16 swapID), SellerClosed(bytes16 swapID)
+    \end{verbatim}
 
 \end{document}
