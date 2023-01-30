@@ -157,10 +157,28 @@
     previously defined.
 
     When called, \verb|openOffer| ensures that an Offer with the specified ID does not already
-    exist, validates all the data that it has been passed, transfers to itself from the maker an
-    amount of the specified token equal to the maker's security deposit amount plus the percentage
-    of the upper bound on the amount of tokens to exchange specified by \verb|this.serviceFeeRate|.
+    exist, validates all the data that it has been passed, maps the new Offer's ID to the Offer
+    itself in \verb|this.offers|, and maps the Offer's ID to its settlement methods, and then those
+    settlement methods to \verb|true| values in \verb|this.offerSettlementMethods|.
+    \verb|this.offers| is a property of the CommutoSwap contract, and is a mapping from
+    \verb|bytes16| values to \verb|Offer|s.
+    \verb|this.offerSettlementMethods| is a nested mapping.
+    The outer mapping maps \verb|bytes16| to inner mappings, and an inner mapping maps \verb|bytes|
+    to \verb|bool| values.
+    Then this emits an \verb|OfferOpened| Event with the ID and interface ID of the offer.
+    The \verb|OfferOpened| Event has the following signature:
+    \begin{verbatim}
+    OfferOpened(bytes16 offerID, bytes interfaceId)
+    \end{verbatim}
+    Then this transfers to itself from the maker an amount of the specified token equal to the
+    maker's security deposit amount plus the percentage of the upper bound on the amount of tokens
+    to exchange specified by \verb|this.serviceFeeRate|.
+    \verb|this.serviceFeeRate| is a property of the CommutoSwap contract of type \verb|uint256|,
+    expressed as a percentage times one hundred, of the amount of tokens exchanged between a buyer
+    and seller, that both the buyer and seller must pay as a service fee.
+    This process is shown in Figure 1.1.
 
+    %TODO: Add label here
     \begin{tikzpicture}[
         question/.style={
             % The shape
@@ -201,8 +219,6 @@
         \node (revert_e5) [action,align=left,right=of isCreated] {Revert with reason \\ string
         \verb|"e5"|};
         \path (isCreated) edge[->] node[pos=0.5,above] {Yes} (revert_e5);
-        \node (fail) [fail,right=of revert_e5] {Fail};
-        \path (revert_e5) edge[->] (fail);
 
         \node (sufficientAmount) [question,align=left,below=of isCreated] {Is
         \verb|amountLowerBound| greater \\ than 0?};
@@ -210,7 +226,6 @@
         \node (revert_e6) [action,align=left,right=of sufficientAmount] {Revert with reason \\
         string \verb|"e6"|};
         \path (sufficientAmount) edge[->] node[pos=0.5,above] {Yes} (revert_e6);
-        \path (revert_e6.east) edge[->] (fail);
 
         \node (properRange) [question,align=left,below=of sufficientAmount ] {Is
         \verb|amountLowerBound| greater \\ than \verb|amountUpperBound|?};
@@ -218,33 +233,27 @@
         \node (revert_e7) [action,align=left,right=of properRange] {Revert with reason \\ string
         \verb|"e7"|};
         \path (properRange) edge[->] node[pos=0.5,above] {Yes} (revert_e7);
-        \path (revert_e7.east) edge[->] (fail.south);
 
         \node (sufficientSecurityDeposit) [question,align=left,below=of properRange] {Is 10 $\times$ \verb|securityDepositAmount| \\ $\geq$ \verb|amountUpperBound|?};
         \path (properRange) edge[->] node[pos=0.5,right] {No} (sufficientSecurityDeposit);
         \node (revert_e8) [action,align=left,right=of sufficientSecurityDeposit] {Revert with reason \\ string \verb|"e8"|};
         \path (sufficientSecurityDeposit) edge[->] node[pos=0.5,above] {Yes} (revert_e8);
-        \path (revert_e8.east) edge[->] (fail.south);
 
         \node (calculateServiceFeeAmntLow) [action,align=left,below=of sufficientSecurityDeposit] {Let \verb|uint256| \\ \verb|serviceFeeAmountLowerBound| \\ = \verb|this.serviceFeeRate| $\times$ \\ \verb|amountLowerBound| $\div$ 10000};
         \path (sufficientSecurityDeposit) edge[->] node[pos=0.5,right] {No} (calculateServiceFeeAmntLow);
-        \node (serviceFeeRateDisclaimer) [align=left,left=1mm of calculateServiceFeeAmntLow] {\verb|this.serviceFeeRate| \\ will be explained later \\ in this document.};
 
         \node (sufficientServiceFee) [question,align=left,below=of calculateServiceFeeAmntLow] {Is \verb|serviceFeeRate > 0| and \\ \verb|serviceFeeAmountLowerBound| \\ = 0?};
         \path (calculateServiceFeeAmntLow) edge[->] (sufficientServiceFee);
         \node (revert_e9) [action,align=left,right=of sufficientServiceFee] {Revert with reason \\ string \verb|"e9"|};
         \path (sufficientServiceFee) edge[->] node[pos=0.5,above] {Yes} (revert_e9);
-        \path (revert_e9.east) edge[->] (fail.south);
 
         \node (validDirection) [question,align=left,below=of sufficientServiceFee] {Is \verb|direction| Buy or Sell?};
         \path (sufficientServiceFee) edge[->] node[pos=0.5,right] {No} (validDirection);
         \node (revert_e12) [action,align=left,right=of validDirection] {Revert with reason \\ string \verb|"e12"|};
         \path (validDirection) edge[->] node[pos=0.5,above] {No} (revert_e12);
-        \path (revert_e12.east) edge[->] (fail.south);
 
         \node (validToken) [question,align=left,below=of validDirection] {Is \\ \verb|this.stablecoins[stablecoin]| \\ true?};
         \path (validDirection) edge[->] node[pos=0.5,right] {Yes} (validToken);
-        \node (stablecoinsNote) [align=left,left=1mm of validToken] {\verb|this.stablecoins| \\ will be explained later \\ in this document.};
         \node (revert_e11) [action,align=left,right=of validToken] {Revert with reason \\ string \verb|"e11"|};
         \path (validToken) edge[->] node[pos=0.5,above] {No} (revert_e11);
 
@@ -257,7 +266,6 @@
             \verb|this.offers[offerID] = newOffer|.
 
         };
-        \node (offersNote) [align=left,right=1mm of openOffer] {\verb|this.offers| \\ will be explained later \\ in this document.};
         \path (validToken) edge[->] node[pos=0.5,right] {Yes} (openOffer);
 
     \end{tikzpicture}
@@ -277,7 +285,6 @@
         \verb|self.offerSettlementMethods| / \\
         \verb|[offerID][settlementMethod] = true|
     };
-    \node (addSettlementMethodsNote) [align=left,right=1mm of addSettlementMethods] {\verb|this.offerSettlementMethods| \\ will be explained later \\ in this document.};
 
     \node (emitEvent) [action, below=of addSettlementMethods] { Emit \verb|OfferOpened| with \verb|offerID| and \verb|interfaceId| };
     \path (addSettlementMethods) edge[->] (emitEvent);
@@ -299,27 +306,6 @@
 
     \end{tikzpicture}
 
-    \verb|this.serviceFeeRate| is a property of the CommutoSwap contract of type \verb|uint256|,
-    expressed as a percentage times one hundred, of the amount of tokens exchanged between a buyer
-    and seller, that both the buyer and seller must pay as a service fee.
-
-    \verb|this.stablecoins| is a property of the CommutoSwap contract, and is a mapping from
-    \verb|address|es to \verb|bool| values.
-    Offers to exchange a token can be created if and only if \verb|this.serviceFeeRate| maps the
-    address of the token to \verb|true|.
-
-    \verb|this.offers| is a property of the CommutoSwap contract, and is a mapping from
-    \verb|bytes16| values to \verb|Offer|s.
-
-    \verb|this.offerSettlementMethods| is a nested mapping.
-    The outer mapping maps \verb|bytes16| to inner mappings, and an inner mapping maps \verb|bytes|
-    to \verb|bool| values.
-
-    \verb|OfferOpened| is an Event with the following signature:
-    \begin{verbatim}
-    OfferOpened(bytes16 offerID, bytes interfaceId)
-    \end{verbatim}
-
     \subsubsection*{Taking an Offer}
 
     An offer taker takes an existing offer by calling the \verb|takeOffer| function.
@@ -329,32 +315,45 @@
     \end{verbatim}
     where \verb|offerID| is a Version-4 UUID and newSwap is a \verb|Swap| struct that is defined as
     follows:
-    \begin{verbatim}
-    struct Swap {
-        bool isCreated;
-        bool requiresFill;
-        address maker;
-        bytes makerInterfaceId;
-        address taker;
-        bytes takerInterfaceId;
-        address stablecoin;
-        uint256 amountLowerBound;
-        uint256 amountUpperBound;
-        uint256 securityDepositAmount;
-        uint256 takenSwapAmount;
-        uint256 serviceFeeAmount;
-        uint256 serviceFeeRate;
-        SwapDirection direction;
-        bytes settlementMethod;
-        uint256 protocolVersion;
-        bool isPaymentSent;
-        bool isPaymentReceived;
-        bool hasBuyerClosed;
-        bool hasSellerClosed;
-        DisputeRaiser disputeRaiser;
-    }
-    \end{verbatim}
-    and \verb|DisputeRaiser| is an \verb|enum| that is defined as follows:
+    \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
+        \hline
+        \multicolumn{3}{|c|}{Swap} \\
+        \hline
+        Property Type & Property Name & Description \\
+        \hline
+        bool & isCreated & Used by contract code to check for swap existence, will be set to true by \verb|takeOffer|. \\
+        bool & requiresFill & If the maker of this swap is the token seller, this indicates whether the seller has transferred to CommutoSwap the amount of tokens that they are selling.
+        If the maker of this swap is not the token seller, this is not used. \\
+        address & maker & Identical to \verb|Offer.maker| of the offer being taken. \\
+        bytes & makerInterfaceId & Identical to \verb|Offer.interfaceId| of the offer being taken. \\
+        address & taker & The taker's address, will be sent to \verb|msg.sender| by \verb|takeOffer|. \\
+        bytes & takerInterfaceId & An array of bytes that should be placed in the “recipient” field of
+        any message sent to the taker of this offer via Matrix. \\
+        address & stablecoin & Identical to \verb|Offer.stablecoin| of the offer being taken. \\
+        uint256 & amountLowerBound & Identical to \verb|Offer.amountLowerBound| of the offer being taken. \\
+        uint256 & amountUpperBound & Identical to \verb|Offer.amountUpperBound| of the offer being taken. \\
+        uint256 & securityDepositAmount & Identical to \verb|Offer.securityDepositAmount| of the offer being taken. \\
+        uint256 & takenSwapAmount & The exact amount of tokens that will be exchanged between the maker and the taker.
+        Must be such that \verb|amountLowerBound| $\leq$ takenSwapAmount $\leq$ \verb|amountUpperBound|. \\
+        uint256 & serviceFeeAmount & Used by contract code, will be set to \verb|Offer.serviceFeeRate| of the offer being taken $\times$ \verb|takenSwapAmount| $\div$ \verb|10000|.\\
+        uint256 & serviceFeeRate & Identical to \verb|Offer.serviceFeeRate| of the offer being taken. \\
+        SwapDirection & direction & Identical to \verb|Offer.direction| of the offer being taken. \\
+        bytes & settlementMethod & A \verb|bytes| value representing the method by which the buyer will send payment for the exchanged tokens.
+        Must be equal to one of the elements in the \verb|Offer.settlementMethods| array of the offer being taken. \\
+        uint256 & protocolVersion & Identical to \verb|Offer.protocolVersion| of the offer being taken. \\
+        bool & isPaymentSent & Indicates whether the buyer has sent payment for tokens purchased.
+        Will be set to false by \verb|takeOffer|. \\
+        bool & isPaymentReceived & Indicates whether the seller has received payment for tokens sold.
+        Will be set to false by \verb|takeOffer|. \\
+        bool & hasBuyerClosed & Indicates whether the buyer has closed the swap to reclaim their security deposit (and unused service fee amount, if they are the maker).
+        Will be set to false by \verb|takeOffer|. \\
+        bool & hasSellerClosed & Indicates whether the seller has closed the swap to reclaim their security deposit (and unused service fee amount, if they are the maker).
+        Will be set to false by \verb|takeOffer|. \\
+        DisputeRaiser & disputeRaiser & Indicates whether the buyer, seller, or neither has raised a dispute during the swap process.
+        Will be set to \verb|NONE| by \verb|takeOffer|. \\
+        \hline
+    \end{longtable}
+    \verb|DisputeRaiser| is an \verb|enum| that is defined as follows:
     \begin{verbatim}
     enum DisputeRaiser  {
         NONE,
@@ -364,48 +363,28 @@
     \end{verbatim}
     The meaning of these values and the use of the \verb|Swap.disputeRaiser| property will be
     described later in this paper.
-    The properties of the \verb|Swap| struct are as follows:
-    \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
-        \hline
-        \multicolumn{3}{|c|}{Swap} \\
-        \hline
-        Property Type & Property Name & Description \\
-        \hline
-        bool & isCreated & Used by contract code to check for swap existence, will be set to true by \verb|takeOffer|. \\
-        bool & requiresFill & If the maker of this swap is the token seller, this indicates whether the seller has transferred to CommutoSwap the amount of tokens that they are selling.
-            If the maker of this swap is not the token seller, this is not used. \\
-        address & maker & Identical to \verb|Offer.maker| of the offer being taken. \\
-        bytes & makerInterfaceId & Identical to \verb|Offer.interfaceId| of the offer being taken. \\
-        address & taker & The taker's address, will be sent to \verb|msg.sender| by \verb|takeOffer|. \\
-        bytes & takerInterfaceId & An array of bytes that should be placed in the “recipient” field of
-            any message sent to the taker of this offer via Matrix. \\
-        address & stablecoin & Identical to \verb|Offer.stablecoin| of the offer being taken. \\
-        uint256 & amountLowerBound & Identical to \verb|Offer.amountLowerBound| of the offer being taken. \\
-        uint256 & amountUpperBound & Identical to \verb|Offer.amountUpperBound| of the offer being taken. \\
-        uint256 & securityDepositAmount & Identical to \verb|Offer.securityDepositAmount| of the offer being taken. \\
-        uint256 & takenSwapAmount & The exact amount of tokens that will be exchanged between the maker and the taker.
-            Must be such that \verb|amountLowerBound| $\leq$ takenSwapAmount $\leq$ \verb|amountUpperBound|. \\
-        uint256 & serviceFeeAmount & Used by contract code, will be set to \verb|Offer.serviceFeeRate| of the offer being taken $\times$ \verb|takenSwapAmount| $\div$ \verb|10000|.\\
-        uint256 & serviceFeeRate & Identical to \verb|Offer.serviceFeeRate| of the offer being taken. \\
-        SwapDirection & direction & Identical to \verb|Offer.direction| of the offer being taken. \\
-        bytes & settlementMethod & A \verb|bytes| value representing the method by which the buyer will send payment for the exchanged tokens.
-            Must be equal to one of the elements in the \verb|Offer.settlementMethods| array of the offer being taken. \\
-        uint256 & protocolVersion & Identical to \verb|Offer.protocolVersion| of the offer being taken. \\
-        bool & isPaymentSent & Indicates whether the buyer has sent payment for tokens purchased.
-            Will be set to false by \verb|takeOffer|. \\
-        bool & isPaymentReceived & Indicates whether the seller has received payment for tokens sold.
-            Will be set to false by \verb|takeOffer|. \\
-        bool & hasBuyerClosed & Indicates whether the buyer has closed the swap to reclaim their security deposit (and unused service fee amount, if they are the maker).
-            Will be set to false by \verb|takeOffer|. \\
-        bool & hasSellerClosed & Indicates whether the seller has closed the swap to reclaim their security deposit (and unused service fee amount, if they are the maker).
-            Will be set to false by \verb|takeOffer|. \\
-        DisputeRaiser & disputeRaiser & Indicates whether the buyer, seller, or neither has raised a dispute during the swap process.
-            Will be set to \verb|NONE| by \verb|takeOffer|. \\
-        \hline
-    \end{longtable}
 
-    When called, \verb|takeOffer| does the following:
+    When called, \verb|takeOffer| ensures that an Offer with the specified ID already exists and is
+    not taken, and validates all the data that it has been passed to ensure that it corresponds with
+    the Offer being taken.
+    Then this sets a flag on the Offer being taken to indicate this, and adds the new swap to
+    \verb|this.swaps|.
+    \verb|this.swaps| is a property of the CommutoSwap contract, and is a mapping from
+    \verb|bytes16| values to \verb|Swap|s.
+    Then this emits an \verb|OfferTaken| event with the ID of the Offer and the interface ID of the
+    taker.
+    The \verb|OfferTaken| Event has the following signature:
+    \begin{verbatim}
+    OfferTaken(bytes16 offerID, bytes takerInterfaceId)
+    \end{verbatim}
+    Then this transfers to itself from the taker an amount of the specified token.
+    If the taker is the buyer, this amount is equal to the security deposit plus the exact service
+    fee.
+    If the taker is the seller, this amount is equal to the security deposit plus the exact service
+    fee plus the amount to be sold.
+    This process is shown in Figure 1.2.
 
+    %TODO: Add label here
     \begin{tikzpicture}[
         question/.style={
             rectangle, thin, draw = black!100, color = black, font = \itshape
@@ -467,7 +446,6 @@
             \verb|disputeRaiser| = \verb|DisputeRaiser.NONE|, and \verb|this.swaps[offerID]| = \verb|newSwap|.
         };
         \path (calculateAmounts) edge[->] (setValues);
-        \node (valuesNote) [align=left,left=1mm of setValues] {\verb|this.swaps| \\ will be explained later \\ in this document.};
 
         \node (emitEvent) [action,below=of setValues] {
             Emit \verb|OfferTaken| with \verb|offerID| and \verb|takerInterfaceId|
@@ -491,28 +469,35 @@
 
     \end{tikzpicture}
 
-    \verb|this.swaps| is a property of the CommutoSwap contract, and is a mapping from
-    \verb|bytes16| values to \verb|Swap|s.
-
-    \verb|OfferTaken| is an Event with the following signature:
-    \begin{verbatim}
-    OfferTaken(bytes16 offerID, bytes takerInterfaceId)
-    \end{verbatim}
-
     \subsubsection*{Filling a Swap}
 
-    Consider the amount of tokens transferred from a user to CommutoSwap when the user is opening an offer to sell tokens.
+    Consider the amount of tokens transferred from a user to CommutoSwap when the user is opening an
+    offer to sell tokens.
     Note that this amount is the sum of the security deposit and the maximum service fee amount;
-    The actual amount of tokens that the user wishes to sell is not transferred when opening such an offer.
-    Therefore, when another user takes an offer to sell tokens, the amount of tokens being sold must be transferred from the offer maker to CommutoSwap.
-    (Note that this is not necessary if the maker is offering to buy tokens, and thus this step is skilled in such cases.)
+    The actual amount of tokens that the user wishes to sell is not transferred when opening such an
+    offer.
+    Therefore, when another user takes an offer to sell tokens, the amount of tokens being sold must
+    be transferred from the offer maker to CommutoSwap.
+    (Note that this is not necessary if the maker is offering to buy tokens, and thus this step is
+    skilled in such cases.)
     The maker and seller accomplishes this by calling the \verb|fillSwap| function.
     This function has the following signature:
     \begin{verbatim}
         fillSwap(bytes16 swapID)
     \end{verbatim}
+    where \verb|swapID| is the ID of the swap to be filled.
 
-    When called, \verb|fillSwap| does the following:
+    When called, \verb|fillSwap| ensures that the caller is the maker and seller of the specified
+    Swap, and that the Swap has not yet been filled.
+    Then this sets a flag on the specified Swap indicating that it has been filled, and then emits a
+    \verb|SwapFilled| Event with the ID of the Swap.
+    The \verb|SwapFilled| Event has the following signature:
+    \begin{verbatim}
+    SwapFilled(bytes16 swapID)
+    \end{verbatim}
+    Finally, this transfers to itself from the maker the exact amount of tokens that the taker is
+    buying.
+    This process is shown in Figure 1.3.
 
     \begin{tikzpicture}[
         question/.style={
@@ -556,23 +541,32 @@
 
     \end{tikzpicture}
 
-    \verb|SwapFilled| is an Event with the following signature:
-    \begin{verbatim}
-    SwapFilled(bytes16 swapID)
-    \end{verbatim}
-
     \subsubsection*{Sending Payment}
 
-    Now the token seller and buyer must exchange whatever information is necessary for the buyer to send payment to the seller.
-    This will be accomplished via Matrix, and this process is described later in this document.
-    Once this information is exchanged, the token buyer must send payment to the seller using the provided details.
-    Then the buyer notifies the seller that this has been done by calling the \verb|reportPaymentSent| function.
+    Now the token seller and buyer must exchange whatever information is necessary for the buyer to
+    send payment to the seller.
+    This will be accomplished via Matrix, and the precise details of this information exchanging
+    process are described later in this document.
+    Once said information is exchanged, the token buyer must send payment to the seller using the
+    provided details.
+    Then the buyer notifies the seller that this has been done by calling the
+    \verb|reportPaymentSent| function.
     This function has the following signature:
     \begin{verbatim}
         reportPaymentSent(bytes16 swapID)
     \end{verbatim}
 
-    When called, \verb|reportPaymentSent| does the following:
+    When called, \verb|reportPaymentSent| ensures that the the Swap does not need to be filled by
+    calling \verb|fillSwap|, that \verb|reportPaymentSent| has not yet been called for the specified
+    Swap, that the caller is the buyer, and that the specified Swap is not disputed (Disputed Swaps
+    are described later in this document.) Then this sets a flag indicating that
+    \verb|reportPaymentSent| has been called and emits a \verb|PaymentSent| event with the ID of the
+    Swap.
+    The \verb|PaymentSent| Event has the following signature:
+    \begin{verbatim}
+    PaymentSent(bytes16 swapID)
+    \end{verbatim}
+    This process is shown in Figure 1.4.
 
     \begin{tikzpicture}[
         question/.style={
@@ -613,20 +607,26 @@
 
     \end{tikzpicture}
 
-    \verb|PaymentSent| is an Event with the following signature:
-    \begin{verbatim}
-    PaymentSent(bytes16 swapID)
-    \end{verbatim}
-
     \subsubsection*{Receiving Payment}
 
-    Once the token seller receives the payment that has been sent by the buyer, the seller must notify the buyer by calling the \verb|reportPaymentReceived| function.
+    Once the token seller receives the payment that has been sent by the buyer, the seller must
+    notify the buyer by calling the \verb|reportPaymentReceived| function.
     This function has the following signature:
     \begin{verbatim}
         reportPaymentReceived(bytes16 swapID)
     \end{verbatim}
 
-    When called, \verb|reportPaymentReceived| does the following:
+    When called, \verb|reportPaymentReceived| ensures that the buyer in the specified Swap has
+    already called \verb|reportPaymentSent|, that \verb|reportPaymentReceived| has not yet been
+    called for the specified Swap, that the caller is the seller, and that the specified Swap is not
+    disputed.
+    Then this sets a flag indicating that \verb|reportPaymentReceived| has been called and emits a
+    \verb|PaymentReceived| Event with the ID of the specified Swap.
+    The \verb|PaymentReceived| Event has the following signature:
+    \begin{verbatim}
+    PaymentReceived(bytes16 swapID)
+    \end{verbatim}
+    This process is shown in Figure 1.5.
 
     \begin{tikzpicture}[
         question/.style={
@@ -645,12 +645,12 @@
         \node (revert_e37) [action,align=left,right=of isPaymentSent] { Revert with reason string \verb|"e37"| };
         \path (isPaymentSent) edge[->] node[pos=0.5,above] {No} (revert_e37);
 
-        \node (isPaymentReceived) [question,align=left,below=of requiresFilling] { Is \verb|isPaymentReceived| false? };
+        \node (isPaymentReceived) [question,align=left,below=of isPaymentSent] { Is \verb|isPaymentReceived| false? };
         \path (isPaymentSent) edge[->] node[pos=0.5,right] {Yes} (isPaymentReceived);
         \node (revert_e38) [action,align=left,right=of isPaymentReceived] { Revert with reason string \verb|"e38"| };
         \path (isPaymentReceived) edge[->] node[pos=0.5,above] {No} (revert_e38);
 
-        \node (isUserSeller) [question,align=left,below=of isPaymentSent] { If \verb|direction| = \verb|BUY|, is the caller the taker? Otherwise, (\verb|direction| = \verb|SELL|) is the caller the maker? };
+        \node (isUserSeller) [question,align=left,below=of isPaymentReceived] { If \verb|direction| = \verb|BUY|, is the caller the taker? Otherwise, (\verb|direction| = \verb|SELL|) is the caller the maker? };
         \path (isPaymentReceived) edge[->] node[pos=0.5,right] {Yes} (isUserSeller);
         \node (revert_e39) [action,align=left,right=of isUserSeller] { Revert with reason string \verb|"e39"| };
         \path (isUserSeller) edge[->] node[pos=0.5,above] {No} (revert_e39);
@@ -674,13 +674,41 @@
 
     \subsubsection*{Closing the Swap}
 
-    Now that the token seller has received payment from the buyer, both the buyer and the seller must close the swap by calling the \verb|closeSwap| function.
+    Now that the token seller has received payment from the buyer, both the buyer and the seller
+    must close the swap by calling the \verb|closeSwap| function.
     This function has the following signature:
     \begin{verbatim}
         closeSwap(bytes16 swapID)
     \end{verbatim}
 
-    When called, \verb|closeSwap| does the following:
+    When called, \verb|closeSwap| ensures that \verb|reportPaymentReceived| has been called for the
+    swap, and that the specified Swap is not disputed.
+    It transfer's the caller's service fee to \verb|this.primaryTimelock|, which is a property of
+    the CommutoSwap contract of type \verb|address|, to which all service fees are sent.
+    This property is also used by administration and governance-related code, which is described
+    later in this document.
+    If the caller is the buyer and taker, this will ensure that they have not already called
+    \verb|closeSwap| for the Swap, and then will refund their security deposit and will transfer the
+    to them the tokens they bought.
+    If the caller is the buyer and maker, this will ensure that they have not already called
+    \verb|closeSwap| for the Swap, and then will refund their security deposit and transfer to them
+    the tokens they bought and the remainder of the maximum service fee (if any) that they
+    transferred to CommutoSwap when opening the offer.
+    If the caller is the seller and taker, this will ensure that they have not already called
+    \verb|closeSwap| for the swap, and then will refund their security deposit.
+    If the caller is the seller and maker, this will ensure that they have not already called
+    \verb|closeSwap| for the swap, and then will refund their security deposit and will transfer to
+    them the remainder of the maximum service fee (if any) that they transferred to CommutoSwap when
+    opening the offer.
+    If the caller is the buyer, this will then emit a BuyerClosed Event.
+    If the caller is the seller, this will then emit a SellerClosed Event.
+    Both specify the Swap ID\@.
+    These Events have the following signature:
+    \begin{verbatim}
+        BuyerClosed(bytes16 swapID), SellerClosed(bytes16 swapID)
+    \end{verbatim}
+    Once buyer and seller have both requested Swap closure, the Swap is completely closed.
+    This process is shown in Figure 1.6.
 
     \begin{tikzpicture}[
         question/.style={
@@ -758,15 +786,5 @@
         \path (verifyServiceFeeTransfer) edge[->] node[pos=0.5,right] {Yes} (return);
 
     \end{tikzpicture}
-
-    \verb|this.primaryTimelock| is a property of the CommutoSwap contract of type \verb|address|, to
-    which all service fees are sent.
-    This property is also used by administration and governance-related code, which is described
-    later in this document.
-
-    \verb|BuyerClosed| and \verb|SellerClosed| are Events with the following signatures:
-    \begin{verbatim}
-        BuyerClosed(bytes16 swapID), SellerClosed(bytes16 swapID)
-    \end{verbatim}
 
 \end{document}
