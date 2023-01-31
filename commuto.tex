@@ -787,4 +787,16 @@
 
     \end{tikzpicture}
 
+    \subsection*{Editing an Offer}
+
+    A maker can edit the price and supported settlement methods of their offer by calling the editOffer function,
+    specifying:
+    bytes16 offerID: the id of the swap offer to edit
+    Offer editedOffer: an Offer struct almost identical to that which the maker created in order to open the offer, but with
+    updated settlement methods
+    This will ensure the caller of the function is the maker of the swap offer with the specified id, that the offer exists,
+    and that the offer has not been taken. Then this will remove support for all the supported settlement methods of the
+    open offer, and then add support to the offer for all settlement methods specified in editedOffer. This will not change
+    any other properties of the offer.
+
 \end{document}
