@@ -789,14 +789,32 @@
 
     \subsection*{Editing an Offer}
 
-    A maker can edit the price and supported settlement methods of their offer by calling the editOffer function,
-    specifying:
-    bytes16 offerID: the id of the swap offer to edit
-    Offer editedOffer: an Offer struct almost identical to that which the maker created in order to open the offer, but with
-    updated settlement methods
-    This will ensure the caller of the function is the maker of the swap offer with the specified id, that the offer exists,
-    and that the offer has not been taken. Then this will remove support for all the supported settlement methods of the
-    open offer, and then add support to the offer for all settlement methods specified in editedOffer. This will not change
-    any other properties of the offer.
+    A maker of an Offer may wish to change the settlement methods by which they are willing to
+    send/receive payment for that particular Offer.
+    If the Offer has not yet been taken, they may do this by calling the \verb|editOffer| function.
+    This function has the following signature:
+    \begin{verbatim}
+    editOffer(bytes16 offerID, Offer editedOffer)
+    \end{verbatim}
+    where \verb|offerID| is ID of the Offer to be edited and \verb|editedOffer| is an \verb|Offer|
+    struct as previously defined, the \verb|settlementMethods| property of which contains the
+    maker's new settlement methods for the Offer, which will completely replace the Offer's current
+    on-chain settlement methods.
+
+    When called, \verb|editOffer| ensures that an Offer with the specified ID exists and is not
+    taken, and that the caller is the maker of the specified Offer.
+    Then, within the $\verb|bytes -> bool|$ mapping that maps supported settlement methods to
+    \verb|true| (which is the inner mapping to which the nested mapping
+    \verb|this.offerSettlementMethods| maps \verb|offerID|) this maps all currently supported
+    settlement methods to \verb|false|.
+    Then, within the same mapping, this maps all settlement methods specified in
+    \verb|editedOffer.settlementMethods| to \verb|true|.
+    Finally, this updates the value of the Offer's \verb|settlementMethods| with the contents of
+    \verb|editedOffer.settlementMethods|, and emits an \verb|OfferEdited| event, specifying the
+    Offer ID\@.
+    The \verb|OfferEdited| has the following signature:
+    \begin{verbatim}
+    OfferEdited(bytes16 offerID)
+    \end{verbatim}
 
 \end{document}
