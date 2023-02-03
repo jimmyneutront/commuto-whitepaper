@@ -803,7 +803,7 @@
 
     When called, \verb|editOffer| ensures that an Offer with the specified ID exists and is not
     taken, and that the caller is the maker of the specified Offer.
-    Then, within the $\verb|bytes -> bool|$ mapping that maps supported settlement methods to
+    Then, within the \verb|bytes -> bool| mapping that maps supported settlement methods to
     \verb|true| (which is the inner mapping to which the nested mapping
     \verb|this.offerSettlementMethods| maps \verb|offerID|) this maps all currently supported
     settlement methods to \verb|false|.
@@ -812,9 +812,92 @@
     Finally, this updates the value of the Offer's \verb|settlementMethods| with the contents of
     \verb|editedOffer.settlementMethods|, and emits an \verb|OfferEdited| event, specifying the
     Offer ID\@.
-    The \verb|OfferEdited| has the following signature:
+    The \verb|OfferEdited| Event has the following signature:
     \begin{verbatim}
     OfferEdited(bytes16 offerID)
+    \end{verbatim}
+
+    \subsection*{Cancelling an Offer}
+
+    A maker of an Offer may wish to cancel that particular Offer.
+    If the Offer has not yet been taken, they may do this by calling the \verb|cancelOffer|
+    function.
+    This function has the following signature:
+    \begin{verbatim}
+    cancelOffer(bytes16 offerID)
+    \end{verbatim}
+    where \verb|offerID|  is the ID of the Offer to be canceled.
+
+    When called, \verb|cancelOffer| ensures that an Offer with the specified ID exists and is not
+    taken, and that the caller is the maker of the specified Offer.
+    Then, this deletes the specified Offer from \verb|this.offers|, and within the
+    \verb|bytes -> bool| mapping that maps supported settlement methods for this Offer to
+    \verb|true| (which is the inner mapping to which the nested mapping
+    \verb|this.offerSettlementMethods| maps \verb|offerID|) this maps all the Offer's supported
+    settlement methods to \verb|false|.
+    Finally, this emits an \verb|OfferCanceled| event, specifying the Offer ID\@, and returns to the
+    maker an amount of the specified token for the Offer being canceled equal to the sum of the
+    security deposit and maximum service fee amount.
+    The \verb|OfferCanceled| Event has the following signature:
+    \begin{verbatim}
+    OfferCanceled(bytes16 offerID)
+    \end{verbatim}
+
+    \subsection*{Dispute Process}
+    In the process described above, both the buyer and seller have opportunities to misbehave and
+    attempt to obtain payment from the other party without sending payment themselves.
+    Additionally, other issues may arise during the process, such as the buyer becoming unable to
+    send payment, or the seller becoming unable to receive payment.
+    In the event of such issues, users can raise a dispute to request intervention from dispute
+    agents, in order to claim whatever tokens or payment are rightly theirs.
+
+    Dispute agents are unbiased, bonded 3rd parties who hear arguments from both the buyer and
+    seller concerning what went wrong during the swap, and they should determine who should receive
+    the tokens still held by CommutoSwap for the swap.
+    CommutoSwap shall have a property named \verb|activeDisputeAgents| of type \verb|address[]|,
+    which contains the address of every current/active dispute agent, and a property named
+    \verb|disputeAgents| that is a mapping from \verb|address| to \verb|bool| values.
+    Every \verb|address| in \verb|activeDisputeAgents| should be mapped to \verb|true| in
+    \verb|disputeAgents|, and all other \verb|address|es should be mapped to \verb|false|.
+    CommutoSwap shall have a property named \verb|disputes| that is a mapping from \verb|bytes16|
+    values to \verb|Dispute| structs.
+    This is used to map the IDs of disputed Swaps to the corresponding \verb|Dispute| struct.
+    The \verb|Dispute| struct is defined as follows:
+    \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
+
+    \end{longtable}
+
+    In the following description, a ``swapper'' is defined as either the maker of an Offer that has
+    been taken, or the taker of an Offer.
+
+    \subsubsection*{Raising a Dispute}
+    A swapper raises a dispute by calling the \verb|raiseDispute| function.
+    This function has the following signature:
+    \begin{verbatim}
+    raiseDispute(
+        bytes16 swapID,
+        address disputeAgent0,
+        address disputeAgent1,
+        address disputeAgent2
+    )
+    \end{verbatim}
+    where \verb|swapID| is the ID of the Swap to be disputed, and the remaining three arguments are
+    unique \verb|address|es that exist in CommutoSwap's \verb|activeDisputeAgents| property.
+    Then this sets the \verb|disputeRaiser| property of the Swap with the specified ID to indicate
+    whether the caller is the maker or the taker of the swap.
+    Then, in the \verb|Dispute| to which \verb|swapID| is mapped in CommutoSwap's \verb|disputes|
+    property, this sets the \verb|disputeRaisedBlockNum| property to the current block number, and
+    the dispute agent addresses to those specified by the caller.
+    Finally, this emits a \verb|DisputeRaised| event, specifying the Swap's ID and the three
+    addresses supplied by the caller.
+    The \verb|DisputeRaised| event has the following signature:
+    \begin{verbatim}
+    DisputeRaised(
+        bytes16 swapID,
+        address disputeAgent0,
+        address disputeAgent1,
+        address disputeAgent2
+    )
     \end{verbatim}
 
 \end{document}
