@@ -862,6 +862,7 @@
     CommutoSwap shall have a property named \verb|disputes| that is a mapping from \verb|bytes16|
     values to \verb|Dispute| structs.
     This is used to map the IDs of disputed Swaps to the corresponding \verb|Dispute| struct.
+    %TODO: include Dispute struct description here
     The \verb|Dispute| struct is defined as follows:
     \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
 
@@ -883,8 +884,9 @@
     \end{verbatim}
     where \verb|swapID| is the ID of the Swap to be disputed, and the remaining three arguments are
     unique \verb|address|es that exist in CommutoSwap's \verb|activeDisputeAgents| property.
-    Then this sets the \verb|disputeRaiser| property of the Swap with the specified ID to indicate
-    whether the caller is the maker or the taker of the swap.
+
+    When called, \verb|raiseDispute| sets the \verb|disputeRaiser| property of the Swap with the
+    specified ID to indicate whether the caller is the maker or the taker of the swap.
     Then, in the \verb|Dispute| to which \verb|swapID| is mapped in CommutoSwap's \verb|disputes|
     property, this sets the \verb|disputeRaisedBlockNum| property to the current block number, and
     the dispute agent addresses to those specified by the caller.
@@ -909,5 +911,42 @@
     They do this by indicating the amount of tokens currently being held by CommutoSwap for the
     disputed Swap in question that the buyer and seller should receive.
     Then each dispute agent calls the \verb|proposeResolution| function, passing those amounts.
+    This function has the following signature:
+    \begin{verbatim}
+    proposeResolution(
+        bytes16 swapID,
+        uint256 makerPayout,
+        uint256 takerPayout,
+        uint256 confiscationPayout
+    )
+    \end{verbatim}
+    where \verb|swapID| is the ID of the disputed Swap for which this resolution is being proposed,
+    \verb|makerPayout| is the amount of tokens that the caller believes the maker should receive,
+    \verb|takerPayout| is the amount of tokens that the caller believes the taker should receive,
+    and \verb|confiscationPayout| is the amount of tokens that the caller believes should be
+    confiscated and transferred to \verb|this.primaryTimelock|.
+
+    When called, \verb|proposeResolution| ensures that a Swap with the specified ID exists, and that
+    the state of the corresponding \verb|Dispute| is not \verb|DisputeState.ESCALATED|.
+    Then, this calculates the total amount of tokens deposited by the maker and taker, minus their
+    service fees, and ensures that this amount equals the sum of \verb|makerPayout|,
+    \verb|takerPayout| and \verb|confiscationPayout|.
+    Additionally, it ensures that neither the maker nor the taker have reacted to any resolution
+    proposed for this Swap by ensuring that the \verb|makerReaction| and \verb|takerReaction|
+    properties of the corresponding \verb|Dispute| both equal \verb|DisputeReaction.NO_REACTION|.
+    Finally, depending on whether the caller was the first, second or third dispute agent specified
+    by the dispute raiser, this sets the proper ``maker payout'', ``taker payout'', ``confiscation
+    payout'' and ``has proposed'' properties of the corresponding Dispute.
+    If the caller is not one of the three dispute agents specified by the dispute raiser, the call
+    fails at this point.
+    Finally, this emits a \verb|ResolutionProposed| event, specifying the Swap's ID and the address
+    of the caller.
+    The \verb|ResolutionProposed| event has the following signature:
+    \begin{verbatim}
+    ResolutionProposed(
+        bytes16 swapID,
+        address disputeAgent
+    )
+    \end{verbatim}
 
 \end{document}
