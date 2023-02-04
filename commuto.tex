@@ -862,11 +862,87 @@
     CommutoSwap shall have a property named \verb|disputes| that is a mapping from \verb|bytes16|
     values to \verb|Dispute| structs.
     This is used to map the IDs of disputed Swaps to the corresponding \verb|Dispute| struct.
-    %TODO: include Dispute struct description here
     The \verb|Dispute| struct is defined as follows:
-    \begin{longtable}[p]{ |p{2.5cm}|p{4cm}|p{7cm}| }
-
+    \begin{longtable}[p]{ |p{3.75cm}|p{5cm}|p{6cm}| }
+        \hline
+        \multicolumn{3}{|c|}{Dispute} \\
+        \hline
+        Property Type & Property Name & Description \\
+        \hline
+        uint & disputeRaisedBlockNum & The block number in which the dispute was raised. \\
+        address & disputeAgent0 & The address of the first dispute agent selected by the dispute
+        raiser. \\
+        address & disputeAgent1 & The address of the second dispute agent selected by the dispute
+        raiser. \\
+        address & disputeAgent2 & The address of the third dispute agent selected by the dispute
+        raiser. \\
+        bool & hasDA0Proposed & Indicates whether the first dispute agent has submitted a resolution
+        proposal. \\
+        uint256 & dA0MakerPayout & The amount of tokens that the first dispute agent believes the
+        maker should receive. \\
+        uint256 & dA0TakerPayout  & The amount of tokens that the first dispute agent believes the
+        taker should receive. \\
+        uint256 & dA0ConfiscationPayout & The amount of tokens that the first dispute agent believes
+        should be confiscated and sent to the primary timelock.\\
+        bool & hasDA1Proposed & Indicates whether the second dispute agent has submitted a
+        resolution proposal. \\
+        uint256 & dA1MakerPayout & The amount of tokens that the second dispute agent believes the
+        maker should receive. \\
+        uint256 & dA1TakerPayout  & The amount of tokens that the second dispute agent believes the
+        taker should receive. \\
+        uint256 & dA1ConfiscationPayout & The amount of tokens that the second dispute agent
+        believes should be confiscated and sent to the primary timelock.\\
+        bool & hasDA2Proposed & Indicates whether the third dispute agent has submitted a esolution
+        proposal. \\
+        uint256 & dA2MakerPayout & The amount of tokens that the third dispute agent believes the
+        maker should receive. \\
+        uint256 & dA2TakerPayout  & The amount of tokens that the third dispute agent believes the
+        taker should receive. \\
+        uint256 & dA2ConfiscationPayout & The amount of tokens that the third dispute agent
+        believes should be confiscated and sent to the primary timelock.\\
+        MatchingProposalPair & matchingProposals & Indicates whether two resolution proposals are
+        identical to each other, and if so, which two they are. \\
+        DisputeReaction &  makerReaction & The maker's reaction to the matching pair or triplet of
+        reaction proposals, if any. \\
+        DisputeReaction & takerReaction & The taker's reaction to the matching pair or triplet of
+        reaction proposals, if any. \\
+        DisputeState & state & Indicates the current state of the dispute. \\
+        bool & hasMakerPaidOut & Indicates whether the maker has closed the disputed swap to receive
+        tokens in the amount specified by the accepted resolution proposals.
+        Will definitely be \verb|false| if identical resolutions have not yet been proposed. \\
+        bool & hasTakerPaidOut & Indicates whether the taker has closed the disputed swap to receive
+        tokens in the amount specified by the accepted resolution proposals.
+        Will definitely be \verb|false| if identical resolutions have not yet been proposed. \\
+        uint256 & totalWithoutSpentServiceFees & The total amount of tokens that the maker and taker
+        have transferred to CommutoSwap for the Swap corresponding to this Dispute. \\
+        \hline
     \end{longtable}
+    \verb|MatchingProposalPair| is an \verb|enum| that is defined as follows:
+    \begin{verbatim}
+    enum MatchingProposalPair {
+        NO_MATCH,
+        ZERO_AND_ONE,
+        ZERO_AND_TWO,
+        ONE_AND_TWO
+    }
+    \end{verbatim}
+    \verb|DisputeReaction| is an \verb|enum| that is defined as follows:
+    \begin{verbatim}
+    enum DisputeReaction {
+        NONE,
+        MAKER,
+        TAKER
+    }
+    \end{verbatim}
+    \verb|DisputeState| is an \verb|enum| that is defined as follows:
+    \begin{verbatim}
+    enum DisputeState {
+        OPEN,
+        PAID_OUT,
+        ESCALATED,
+        ESCALATED_PAID_OUT
+    }
+    \end{verbatim}
 
     In the following description, a ``swapper'' is defined as either the maker of an Offer that has
     been taken, or the taker of an Offer.
