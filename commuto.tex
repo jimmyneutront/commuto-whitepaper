@@ -900,4 +900,14 @@
     )
     \end{verbatim}
 
+    \subsubsection*{Proposing a Resolution}
+    Using a Commuto Interface, both the maker and the taker communicate with the dispute agents and
+    explain the circumstances of the dispute (which may involve problems sending or receiving
+    payment, an unresponsive peer, or other reason.) Similarly, the dispute agents communicate with
+    each other to determine a resolution.
+    The dispute agents have one week to determine such a resolution.
+    They do this by indicating the amount of tokens currently being held by CommutoSwap for the
+    disputed Swap in question that the buyer and seller should receive.
+    Then each dispute agent calls the \verb|proposeResolution| function, passing those amounts.
+
 \end{document}
