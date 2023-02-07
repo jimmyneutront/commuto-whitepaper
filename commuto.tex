@@ -929,9 +929,9 @@
     \verb|DisputeReaction| is an \verb|enum| that is defined as follows:
     \begin{verbatim}
     enum DisputeReaction {
-        NONE,
-        MAKER,
-        TAKER
+        NO_REACTION,
+        ACCEPTED,
+        REJECTED
     }
     \end{verbatim}
     \verb|DisputeState| is an \verb|enum| that is defined as follows:
@@ -1003,7 +1003,8 @@
     confiscated and transferred to \verb|this.primaryTimelock|.
 
     When called, \verb|proposeResolution| ensures that a Swap with the specified ID exists, and that
-    the state of the corresponding \verb|Dispute| is not \verb|DisputeState.ESCALATED|.
+    the corresponding Dispute has been escalated. (The meaning of an escalated Dispute will be
+    explained later in this document.)
     Then, this calculates the total amount of tokens deposited by the maker and taker, minus their
     service fees, and ensures that this amount equals the sum of \verb|makerPayout|,
     \verb|takerPayout| and \verb|confiscationPayout|.
@@ -1023,6 +1024,46 @@
         bytes16 swapID,
         address disputeAgent
     )
+    \end{verbatim}
+
+    \subsubsection*{Reacting to a Resolution Proposal}
+    Once at least two dispute agents have submitted identical resolution proposals, both the maker
+    and the taker of the disputed Swap should indicate whether they accept or reject the proposed
+    resolution by calling \verb|reactToResolutionProposal|, specifying their reaction.
+    This function has the following signature:
+    \begin{verbatim}
+        reactToResolutionProposal(
+            bytes16 swapID,
+            DisputeReaction reaction
+        )
+    \end{verbatim}
+    where \verb|swapID| is the ID of the disputed Swap for which the caller is reacting to a
+    resolution proposal, and \verb|reaction| is the caller's reaction.
+    If the caller is the maker of the Swap, this ensures that they have not already reacted, and
+    then sets the \verb|makerReaction| property of the corresponding \verb|Dispute| to
+    \verb|reaction|.
+    If the caller is the taker of the Swap, this ensures that they have not already reacted, and
+    then sets the \verb|takerReaction| property of the corresponding \verb|Dispute| to
+    \verb|reaction|.
+    If the caller is neither the maker nor the taker, the call reverts at this point.
+    If a pair of matching resolution proposals has not yet been found, this searches for them:
+    If both the first and second dispute agents have submitted identical resolution proposals, this
+    sets the \verb|matchingResolutionProposals| property of the corresponding Dispute to
+    \verb|MatchingProposalPair.ZERO_AND_ONE|.
+    Otherwise, if the second and third dispute agents have submitted identical resolution proposals,
+    this sets the \verb|matchingResolutionProposals| property of the corresponding Dispute to
+    \verb|MatchingProposalPair.ONE_AND_TWO|.
+    Otherwise, if the first and third dispute agents have submitted identical resolution proposals,
+    this sets the \\
+    \verb|matchingResolutionProposals| property of the corresponding Dispute to \\
+    \verb|MatchingProposalPair.ZERO_AND_TWO|.
+    Otherwise, two matching resolution proposals have not been submitted, and this call reverts at
+    this point.
+    Finally, this emits an \verb|ReactionSubmitted|, specifying the Swap ID\@, the address of the
+    caller, and the caller's reaction.
+    The \verb|ReactionSubmitted| Event has the following signature:
+    \begin{verbatim}
+    ReactionSubmitted(bytes16 swapID, address addr, DisputeReaction reaction)
     \end{verbatim}
 
 \end{document}
